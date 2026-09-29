@@ -1,0 +1,1994 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>笔记助手 Chatflow 搭建手册</title>
+<style>
+:root{
+  --bg:#F2F4F7; --card:#FFFFFF; --line:#EAECF0; --line2:#D0D5DD;
+  --t1:#101828; --t2:#475467; --t3:#98A2B3;
+  --blue:#155EEF; --blue-soft:#EFF4FF; --sel:#296DFF;
+  --green:#12B76A; --green-soft:#ECFDF3; --orange:#F79009; --orange-soft:#FFFAEB; --red:#F04438; --red-soft:#FEF3F2;
+  --violet:#7A5AF8; --violet-soft:#F4F3FF;
+  --c-start:#2970FF; --c-cls:#16B364; --c-kb:#16B364; --c-llm:#6172F3; --c-if:#06AED4; --c-ans:#F79009; --c-tool:#475467; --c-agent:#7A5AF8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.55}
+button{font:inherit;cursor:pointer}
+code{font-family:"SF Mono",Menlo,monospace;background:#F2F4F7;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:12.5px}
+kbd{font-family:inherit;background:#fff;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px}
+
+/* ---------- 顶栏 ---------- */
+.top{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--card);border-bottom:1px solid var(--line)}
+.appicon{width:34px;height:34px;border-radius:10px;background:#FFEAD5;display:grid;place-items:center;font-size:20px;cursor:pointer;user-select:none;transition:transform .15s}
+.appicon:active{transform:scale(.9)}
+.apptitle{font-weight:600;font-size:15px}
+.appsub{color:var(--t3);font-size:12px}
+.top .grow{flex:1}
+.seg{display:flex;background:#F2F4F7;border-radius:10px;padding:3px}
+.seg button{border:0;background:none;border-radius:8px;padding:5px 12px;font-size:13px;color:var(--t2);white-space:nowrap}
+.seg button.on{background:#fff;color:var(--t1);font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.1)}
+.prog{color:var(--t2);font-size:13px;white-space:nowrap}
+.btn{border:1px solid var(--line2);background:#fff;color:var(--t1);border-radius:8px;padding:6px 12px;font-size:13px;white-space:nowrap}
+.btn:hover{background:#F9FAFB}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:#004EEB}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* ---------- 主体三栏 ---------- */
+.main{display:grid;grid-template-columns:240px minmax(0,1fr) 420px;height:calc(100vh - 56px)}
+.steps{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:10px 8px 24px}
+.round{font-size:12px;font-weight:600;color:var(--t3);padding:14px 10px 6px;letter-spacing:.02em}
+.step{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 10px;color:var(--t2);font-size:13px}
+.step:hover{background:#F9FAFB}
+.step.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.step .no{flex:none;min-width:26px;color:var(--t3);font-variant-numeric:tabular-nums}
+.step.on .no{color:var(--blue)}
+.step.done .no::after{content:" ✓";color:var(--green)}
+
+.center{display:flex;flex-direction:column;min-width:0;min-height:0}
+.vp{position:relative;flex:1 1 auto;min-height:340px;overflow:hidden;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:20px 20px;cursor:grab}
+.vp.drag{cursor:grabbing}
+.board{position:absolute;left:12px;top:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12.5px;color:var(--t2);box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
+.board b{color:var(--t1)}
+.world{position:absolute;left:0;top:0;transform-origin:0 0;transition:transform .35s ease}
+.world.nt{transition:none}
+.world svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
+.zoom button{border:0;background:none;border-radius:6px;padding:3px 9px;color:var(--t2);font-size:13px}
+.zoom button:hover{background:#F2F4F7}
+.zoom span{padding:3px 6px;color:var(--t2);font-size:12px;min-width:44px;text-align:center}
+.legend{position:absolute;left:12px;bottom:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--t2);box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;border:2px solid var(--sel);vertical-align:-1px;margin-right:4px}
+
+/* ---------- 节点（仿 Dify） ---------- */
+.node{position:absolute;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 0 0 1px var(--line);padding-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.node:hover{box-shadow:0 4px 10px rgba(16,24,40,.10),0 0 0 1px var(--line2)}
+.node.sel{box-shadow:0 0 0 2px var(--sel),0 6px 16px rgba(41,109,255,.18)}
+.node .nhead::after{margin-left:auto;flex:none;white-space:nowrap;font-size:10.5px;font-weight:600;border-radius:6px;padding:1px 6px}
+.node.new .nhead::after{content:"本步新增";color:var(--sel);background:var(--blue-soft)}
+.node.chg .nhead::after{content:"本步修改";color:#B54708;background:var(--orange-soft)}
+.node.del{opacity:.55;box-shadow:0 0 0 2px var(--red)}
+.node.del .nhead::after{content:"本步删除";color:var(--red);background:var(--red-soft)}
+.node.del .ntitle{text-decoration:line-through}
+.nhead{display:flex;align-items:center;gap:8px;padding:11px 12px 7px}
+.nicon{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex:none}
+.nicon svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ntitle{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nbody{padding:0 12px;font-size:12px;color:var(--t2)}
+.nlabel{font-size:10.5px;color:var(--t3);font-weight:600;margin:4px 0 2px}
+.pill{display:flex;align-items:center;gap:6px;background:#F2F4F7;border-radius:8px;padding:4px 8px;font-size:12px;color:var(--t1);margin-top:2px}
+.pill .tagc{font-size:10px;color:var(--t3);border:1px solid var(--line2);border-radius:4px;padding:0 4px}
+.tl{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;margin-top:4px;font-size:12px;color:var(--t1);background:#fff}
+.row{position:relative;background:#F9FAFB;border-radius:8px;padding:5px 8px;margin-top:5px}
+.row b{display:block;font-size:12px;color:var(--t1)}
+.row small{display:block;font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.fail{background:var(--orange-soft)}
+.row.fail b{color:#B54708}
+.anstext{background:#F9FAFB;border-radius:8px;padding:5px 8px;font-size:11.5px;color:var(--t2);white-space:pre-wrap;max-height:92px;overflow:hidden}
+.h{position:absolute;width:4px;height:14px;border-radius:2px;background:var(--sel)}
+.h.in{left:-2px;top:14px}
+.h.out{right:-2px;top:14px}
+.row .h.out{right:-14px;top:calc(50% - 7px)}
+
+/* 变量 chip（仿 Dify） */
+.var{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;white-space:nowrap;vertical-align:1px}
+.var i{font-style:normal;color:var(--blue);font-weight:600;margin-right:2px}
+.var em{font-style:normal;color:var(--t2)}
+.var s{text-decoration:none;color:var(--t3)}
+.var b{color:var(--blue);font-weight:500}
+
+/* ---------- 说明卡 ---------- */
+.guide{flex:0 0 auto;max-height:44vh;overflow:auto;background:var(--card);border-top:1px solid var(--line);padding:16px 22px 28px}
+.gh{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.gh .gno{font-size:13px;color:var(--blue);font-weight:700}
+.gh h2{margin:0;font-size:17px}
+.gh .gr{color:var(--t3);font-size:12px}
+.guide ol{margin:6px 0 10px;padding-left:22px}
+.guide li{margin:5px 0}
+.ui{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12.5px;line-height:20px;color:var(--t1);font-weight:500;white-space:nowrap}
+.call{border-radius:10px;padding:8px 12px;margin:8px 0;font-size:13px}
+.call b.k{margin-right:6px}
+.call.tip{background:var(--blue-soft);color:#1849A9}
+.call.warn{background:var(--orange-soft);color:#93370D}
+.call.check{background:var(--green-soft);color:#05603A}
+.call.egg{background:var(--violet-soft);color:#5925DC}
+table.t{border-collapse:collapse;margin:6px 0 10px;font-size:13px;width:100%}
+table.t th,table.t td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.t th{background:#F9FAFB;font-weight:600;color:var(--t2)}
+.cb{position:relative;background:#F9FAFB;border:1px solid var(--line);border-radius:8px;padding:8px 64px 8px 10px;margin:6px 0;white-space:pre-wrap;font-size:12.5px}
+.cb .cp{position:absolute;right:6px;top:6px}
+
+/* ---------- 右侧配置面板（仿 Dify） ---------- */
+.panel{background:var(--card);border-left:1px solid var(--line);overflow:auto}
+.ph{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 0;border-bottom:1px solid var(--line)}
+.phr{display:flex;align-items:center;gap:10px}
+.phr .nicon{width:26px;height:26px;border-radius:8px}
+.phr .nicon svg{width:16px;height:16px}
+.pt{font-size:16px;font-weight:600}
+.pdesc{color:var(--t3);font-size:12.5px;margin:6px 0 10px}
+.tabs{display:flex;gap:18px;font-size:13px}
+.tabs span{padding:6px 0;color:var(--t3)}
+.tabs span.on{color:var(--t1);font-weight:600;border-bottom:2px solid var(--blue)}
+.pb{padding:6px 16px 30px}
+.f{padding:12px 0;border-bottom:1px solid #F2F4F7}
+.f:last-child{border-bottom:0}
+.fl{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#354052;margin-bottom:6px}
+.tag{font-size:10.5px;font-weight:600;color:#B54708;background:var(--orange-soft);border-radius:4px;padding:0 5px}
+.box{background:#F2F4F7;border-radius:8px;padding:6px 10px;min-height:32px;font-size:13px;color:var(--t1)}
+.muted{color:var(--t3);font-size:12.5px}
+.note{color:var(--t2);font-size:12px;margin-top:5px}
+.kbitem{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;margin-top:4px}
+.pe{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#F9FAFB}
+.peh{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--line);background:#fff}
+.peh span{font-size:12px;font-weight:600;color:var(--t2);letter-spacing:.04em}
+.pe pre{margin:0;padding:10px 12px;font-family:inherit;font-size:12.5px;white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;color:var(--t1)}
+mark{background:#FEF0C7;color:#93370D;border-radius:3px;padding:0 2px}
+.cp{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:1px 8px;font-size:12px;color:var(--t2)}
+.cp:hover{color:var(--blue);border-color:var(--blue)}
+.cp.ok{color:var(--green);border-color:var(--green)}
+.cc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff}
+.cct{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.cct b{font-size:13px}
+.ccd{font-size:12.5px;color:var(--t2);background:#F9FAFB;border-radius:6px;padding:5px 8px}
+.sw{display:inline-block;width:30px;height:17px;border-radius:9px;background:#D0D5DD;position:relative;vertical-align:-4px;margin-right:6px}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff}
+.sw.on{background:var(--blue)}
+.sw.on::after{left:15px}
+.outv{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:3px 0}
+.outv b{font-weight:600}
+.outv span{color:var(--t3)}
+.cond{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
+.ifl{flex:none;width:42px;font-size:12px;font-weight:700;color:var(--t2);padding-top:5px}
+.cr{flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#F2F4F7;border-radius:8px;padding:6px 8px}
+.op{background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12px}
+.val{font-size:13px;font-weight:600}
+.empty{padding:40px 24px;color:var(--t3);text-align:center;font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#101828;color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:30}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+/* ---------- 彩蛋 ---------- */
+.egg{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;justify-content:center;z-index:20;padding:24px}
+.egg.show{display:flex}
+.eggcard{background:#fff;border-radius:18px;max-width:980px;width:100%;max-height:90vh;overflow:auto;padding:24px 26px;box-shadow:0 24px 48px rgba(16,24,40,.25);animation:pop .35s ease}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.eggcard h3{margin:0 0 4px;font-size:20px}
+.eggsub{color:var(--t2);margin-bottom:16px}
+.eggs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ec{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#FCFCFD}
+.ec h4{margin:0 0 8px;font-size:15px}
+.ec h4 span{font-size:12px;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:6px;padding:1px 7px;margin-right:6px}
+.ec pre{background:#F2F4F7;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;margin:6px 0 10px;white-space:pre;overflow:auto}
+.ec ul{margin:4px 0 8px;padding-left:18px;font-size:13px}
+.ec li{margin:3px 0}
+.ec .hint{background:var(--orange-soft);color:#93370D;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:6px 0}
+.ec .q{background:var(--violet-soft);color:#5925DC;border-radius:8px;padding:6px 10px;font-size:12.5px}
+.eggfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;color:var(--t3);font-size:12.5px}
+
+.nv{display:none;grid-template-columns:220px 360px minmax(0,1fr);height:calc(100vh - 56px)}
+.nv.show{display:grid}
+.nlist{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:10px 8px 24px}
+.nli{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;border-radius:8px;padding:6px 10px;font-size:13px;color:var(--t2);text-align:left}
+.nli:hover{background:#F9FAFB}
+.nli.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.nli .nicon{width:20px;height:20px;border-radius:6px}
+.nli .nicon svg{width:12px;height:12px}
+.nli .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+.nlegend{font-size:11.5px;color:var(--t3);padding:4px 10px 0}
+.nlegend i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:1px}
+.ninfo{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:22px 22px 30px}
+.nh{display:flex;align-items:center;gap:10px}
+.nh .nicon{width:30px;height:30px;border-radius:9px}
+.nh .nicon svg{width:18px;height:18px}
+.nh h2{margin:0;font-size:19px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+.bd{font-size:11.5px;border-radius:6px;padding:1px 7px;background:#F2F4F7;color:var(--t2)}
+.bd.wf{background:#EFF8FF;color:#175CD3}
+.bd.cf{background:#FDF2FA;color:#C11574}
+.bd.used{background:var(--green-soft);color:#067647}
+.one{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:6px}
+.like{color:var(--t2);font-size:13.5px}
+.sec{font-size:12px;font-weight:600;color:var(--t3);margin:18px 0 6px;letter-spacing:.04em}
+.how{font-size:13.5px}
+.scn{margin:0;padding-left:18px;font-size:13.5px}
+.scn li{margin:4px 0}
+.jump{margin-top:18px;border:1px solid var(--line2);background:#fff;border-radius:8px;padding:5px 10px;font-size:12.5px;color:var(--blue)}
+.jump:hover{border-color:var(--blue)}
+.demo{display:flex;flex-direction:column;min-width:0;min-height:0}
+.dbar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#fff;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2)}
+.dbar b{font-size:14px;color:var(--t1)}
+.dbar .muted{margin-left:auto}
+.dvp{position:relative;flex:1 1 auto;min-height:240px;overflow:hidden;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:20px 20px;cursor:grab}
+.dvp.drag{cursor:grabbing}
+.dctl{flex:0 0 auto;max-height:50vh;overflow:auto;background:#fff;border-top:1px solid var(--line);padding:12px 16px 16px}
+.ctls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.ci{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--t2)}
+.ci input,.ci select,.ci textarea{font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:8px;padding:5px 8px;background:#fff;color:var(--t1)}
+.ci input[type=number]{width:110px}
+.ci.wide{flex:1 1 100%}
+.ci textarea{width:100%;resize:vertical}
+.ck{font-size:13px;color:var(--t1);display:flex;align-items:center;gap:6px;padding-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--t2)}
+.chip.on{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.code{background:#101828;color:#E4E7EC;border-radius:8px;padding:8px 10px;font-family:"SF Mono",Menlo,monospace;font-size:12px;white-space:pre;overflow:auto;margin:0}
+.dres{margin-top:12px;background:#F9FAFB;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.dres pre{margin:4px 0;white-space:pre-wrap;font-family:"SF Mono",Menlo,monospace;font-size:12px}
+.dres ol,.dres ul{margin:4px 0;padding-left:20px}
+.rh{font-size:12px;font-weight:600;color:var(--t3);margin:6px 0 4px}
+.rh:first-child{margin-top:0}
+.sim{display:inline-block;font-size:11px;font-weight:600;color:#B54708;background:var(--orange-soft);border-radius:4px;padding:0 5px;margin-left:6px}
+.node.ran{box-shadow:0 0 0 2px var(--green),0 4px 12px rgba(18,183,106,.15)}
+.node.ran .nhead::after{content:"✓";color:#fff;background:var(--green);border-radius:50%;width:16px;height:16px;padding:0;display:grid;place-items:center;font-size:11px}
+.node.wait{box-shadow:0 0 0 2px var(--orange)}
+.node.wait .nhead::after{content:"等待中";color:#B54708;background:var(--orange-soft)}
+.node.err{box-shadow:0 0 0 2px var(--red)}
+.node.err .nhead::after{content:"处理不了";color:var(--red);background:var(--red-soft)}
+.chat{display:flex;flex-direction:column}
+.bubble{max-width:85%;border-radius:12px;padding:6px 11px;margin:4px 0;font-size:13px;white-space:pre-wrap}
+.bubble.u{margin-left:auto;background:var(--blue);color:#fff}
+.bubble.b{background:#fff;border:1px solid var(--line)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:3px 0 8px}
+.bar i{display:block;height:100%;background:var(--green)}
+.vbox{border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;background:#fff;font-size:12.5px;margin-top:6px}
+
+@media (max-width:1280px){ .main{grid-template-columns:200px minmax(0,1fr) 360px} .nv{grid-template-columns:180px 300px minmax(0,1fr)} }
+@media (max-width:980px){
+  .main{grid-template-columns:1fr;height:auto}
+  .steps{max-height:180px;border-right:0;border-bottom:1px solid var(--line)}
+  .center{height:auto}
+  .vp{height:420px;flex:none}
+  .panel{border-left:0;border-top:1px solid var(--line)}
+  .top{flex-wrap:wrap;height:auto;padding:8px 16px}
+  .eggs{grid-template-columns:1fr}
+  .nv.show{grid-template-columns:1fr;height:auto}
+  .nlist{max-height:180px;border-right:0}
+  .dvp{height:340px;flex:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="appicon" id="appicon">🤖</div>
+  <div>
+    <div class="apptitle" id="apptitle"></div>
+    <div class="appsub">W2D3 带做 · 界面按 Dify 1.17.1 文档 + 实测截图还原，标「待实测」的以实际界面为准</div>
+  </div>
+  <div class="grow"></div>
+  <div class="seg" id="seg">
+    <button data-v="nodes">节点初识</button>
+    <button data-v="v3">V3 路由版</button>
+    <button data-v="v4">V4 多 Agent 版</button>
+  </div>
+  <span class="prog" id="prog"></span>
+  <button class="btn" id="prev">← 上一步</button>
+  <button class="btn primary" id="next">下一步 →</button>
+</div>
+
+<div class="main">
+  <nav class="steps" id="steps"></nav>
+  <section class="center">
+    <div class="vp" id="vp">
+      <div class="board" id="board"></div>
+      <div class="world" id="world"><svg id="edges" width="2700" height="1100"></svg></div>
+      <div class="legend"><i></i>蓝框 = 这一步要动的节点　·　点任意节点看配置　·　拖动平移</div>
+      <div class="zoom">
+        <button id="zout" title="缩小">－</button><span id="zl">100%</span><button id="zin" title="放大">＋</button>
+        <button id="zfit">看全图</button><button id="zfocus">回到本步</button>
+      </div>
+    </div>
+    <div class="guide" id="guide"></div>
+  </section>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<div class="nv" id="nv">
+  <nav class="nlist" id="nlist"></nav>
+  <section class="ninfo" id="ninfo"></section>
+  <section class="demo">
+    <div class="dbar"><span>实例</span><b id="dtitle"></b><span class="muted">拖动平移 · ⌘/Ctrl + 滚轮缩放</span><button class="btn" id="dfit">看全图</button></div>
+    <div class="dvp" id="dvp"><div class="world" id="dworld"><svg id="dedges" width="1600" height="900"></svg></div></div>
+    <div class="dctl" id="dctl"></div>
+  </section>
+</div>
+
+<div class="egg" id="egg">
+  <div class="eggcard">
+    <h3>🥚 你发现了彩蛋：多 Agent 还能这么玩</h3>
+    <div class="eggsub">下面两个<b>只给思路，不给教程</b>。自己搭、自己测，做出来截图发群里。</div>
+    <div class="eggs">
+      <div class="ec">
+        <h4><span>C · 并行</span>「复习卡」模式</h4>
+<pre>分模式 → 新增分类「全面复习」
+   ├→ 讲解 Agent
+   ├→ 出题 LLM        （三路同时跑）
+   └→ 面试官 Agent
+          ↓ 三路汇合
+   LLM「复习卡汇总」→ 直接回复</pre>
+        <ul>
+          <li>给分类器加一类「全面复习」，接住「帮我全面复习 RAG」这种请求</li>
+          <li>从这个出口<b>同时拉出三条线</b>，三路一起跑</li>
+          <li>三条线汇到一个 LLM，合成一张复习卡：讲解 + 5 道题 + 3 道面试题</li>
+        </ul>
+        <div class="hint">提示：并行分支的结果不能用变量聚合器合并（它只管「每次只走一条」的互斥分支），要用 LLM 或模板转换来合并。</div>
+        <div class="q">自己测：三路同时跑，总耗时是三路加起来，还是等最慢的那一路？三路里哪一路其实不需要 Agent？</div>
+      </div>
+      <div class="ec">
+        <h4><span>D · 主管式</span>一句话里要两件事</h4>
+<pre>用户：「讲讲 RAG，再出 3 道面试题」
+  → 主管 Agent
+      工具：答疑工具 / 面试题工具 / 出题工具
+      ├─ 先调「答疑」
+      └─ 再调「面试题」
+  → 主管把两份结果合成一个回答</pre>
+        <ul>
+          <li>把「答疑」「出面试题」各做成一个 Workflow（里面放 LLM 或 Agent），<b>发布为工具</b>——和今天的「查课程笔记」一个做法</li>
+          <li>新建一个 Chatflow，只放一个「主管 Agent」，工具列表挂上这几个工具</li>
+          <li>让主管自己决定：拆成几件事、先调谁后调谁</li>
+        </ul>
+        <div class="hint">提示：Dify 的 Agent 节点不能直接调用另一个 Agent，所以子 Agent 要先包成 Workflow 工具。</div>
+        <div class="q">自己测：同一句混合请求，V3、V4、主管版各答得怎么样？主管拆错、漏调了怎么办？它比路由版贵多少、慢多少？</div>
+      </div>
+    </div>
+    <div class="eggfoot"><span>没有标准答案，也没有教程。搭不出来也正常，搭出来就是面试时最好的故事。</span><button class="btn primary" id="eggclose">我去试试</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+/* ================= 工具函数 ================= */
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const hl = s => s.replace(/（[^（）]*按 \/ 选[^（）]*）/g, m => `<mark>${m}</mark>`);
+const COPY = [];
+const reg = t => (COPY.push(t), COPY.length - 1);
+const ui = t => `<span class="ui">${t}</span>`;
+const v = (n, k) => `<span class="var"><i>{x}</i>${n ? `<em>${n}</em><s>/</s>` : ''}<b>${k}</b></span>`;
+const Q = v('用户输入', 'query');
+const cb = t => `<div class="cb">${esc(t)}<button class="cp" data-cid="${reg(t)}">复制</button></div>`;
+
+/* ================= 文本 ================= */
+const CTX = '（粘贴后删掉这一行，按 / 选「上下文」）';
+const CLASSES = [
+  {id:'c1', t:'知识问答', d:'用户在问某个知识点是什么、为什么、怎么做，或和别的概念有什么区别。不包括：要面试题、要出题测试、提交测试答案'},
+  {id:'c2', t:'面试题',   d:'用户要某个知识点的面试题，或者问面试怎么答、面试会被问什么'},
+  {id:'c3', t:'出题测试', d:'用户要求出题考他、做测试、做练习，还没有开始作答'},
+  {id:'c4', t:'交卷评分', d:'用户在提交测试题的答案，通常是按题号排列的一串答案，例如「1.B 2.C 3.A 4.……」'},
+  {id:'c5', t:'其他',     d:'与课程学习无关的请求，例如闲聊、查天气、让你替他写作业'},
+];
+const P_CLS = `只按用户这一条消息的意图分类。
+用户消息是按题号排列的一串答案（如 1.B 2.C）时，归为「交卷评分」。
+拿不准是「知识问答」还是「面试题」时，归为「知识问答」。`;
+
+const P_IV = `# 角色
+你是我的课程笔记面试教练。
+
+# 任务
+根据<上下文>里的课程笔记，围绕我问的知识点出面试题。
+
+# 规则
+1. 默认出 3 道面试官可能会问的题（我指定了数量就按我的数量），由浅到深。
+2. 每道题给出：
+   - 面试官想考什么（一句话）
+   - 回答话术：口语化，先给结论再展开，150 字以内，像我在面试现场说出来的话
+   - 可能的追问（一句话）
+3. 回答话术以笔记内容为准。笔记里这部分内容很少时，开头先提醒一句「笔记里这部分内容较少，题目仅供参考」。
+4. 不要编造笔记里没有的具体数据和案例。
+
+<上下文>
+${CTX}
+</上下文>`;
+
+const P_QUIZ = `# 角色
+你是我的课程笔记出题老师。
+
+# 任务
+根据<上下文>里的课程笔记出一套测试题考我。
+
+# 规则
+1. 默认 5 道题：第 1–3 题是单选题（每题 4 个选项），第 4–5 题是简答题。我指定了数量就按我的数量。
+2. 题目只能来自<上下文>里的笔记，不要出笔记里没有的内容。
+3. 只给题目，绝不给答案、解析和提示。
+4. 最后一行固定写：
+请按这个格式作答：1.B 2.C 3.A 4.（你的回答） 5.（你的回答）
+5. 如果<上下文>里没有和我要测的模块相关的笔记，直接告诉我「笔记里没找到这个模块」，请我换一个模块。
+
+<上下文>
+${CTX}
+</上下文>`;
+
+const P_GRADE = `# 角色
+你是我的课程笔记阅卷老师。
+
+# 任务
+我刚才在这次对话里做了你出的测试题，现在交卷。请结合对话记录里的题目、我的答案和<上下文>里的笔记，逐题评分。
+
+# 评分规则
+1. 单选题每题 10 分，对错分明。
+2. 简答题每题 20 分，按笔记里的要点给分：写出我答到了哪几个要点、漏了哪几个。
+3. 每题都给出正确答案和对应的笔记出处。
+4. 没作答的题记 0 分，标「未作答」。
+5. 最后给出：总分（换算成百分制）、掌握得好的知识点、薄弱的知识点、建议我回去重看笔记的哪几部分。
+6. 如果对话记录里找不到你出过的题，直接说「没找到这次对话里的测试题，请先让我出题」，不要自己编题。
+
+<上下文>
+${CTX}
+</上下文>`;
+
+const P_NOTE = `# 角色
+你是我的课程笔记学习助手，负责知识问答。
+
+# 任务
+只根据<上下文>里的课程笔记回答我的问题。
+
+# 规则
+1. 如果<上下文>里没有和问题相关的内容，或者内容太少、不足以讲清楚，只输出下面这一行，不要输出任何其他内容：
+【笔记未覆盖】
+2. 笔记足够时：先给一句话结论，再展开解释；末尾标注【来自笔记】，并写明出自哪段笔记。
+3. 如果发现笔记内容和公认说法明显不一致，在回答末尾单独写一段【笔记可能有误】：引用笔记原文 → 给出正确说法 → 建议我去核实。
+4. 不要编造笔记里没有的内容。
+
+<上下文>
+${CTX}
+</上下文>`;
+
+const P_WEB = `# 角色
+你是我的课程笔记学习助手。我的笔记里没有这个知识点，你要根据联网搜索结果回答。
+
+# 规则
+1. 开头先说一句：「你的笔记里没有记这部分，下面是联网补充的内容。」
+2. 先给一句话结论，再展开解释，全部标注【联网补充】。
+3. 末尾列出参考链接（从搜索结果里取，最多 3 个）。
+4. 搜索结果之间说法不一致时，如实说明分歧，不要替我选一个当定论。
+5. 搜索结果里也没有可靠信息时，直接说「没找到可靠资料」。`;
+const P_WEB_USER = `我的问题：（按 / 选 用户输入 / query）
+搜索结果：（按 / 选 Bocha Web Search / text）`;
+
+const P_AG_QA = `# 角色
+你是我的课程笔记答疑助手，帮我把课程里的知识点真正弄懂。
+
+# 工具
+1. search_course_notes（查课程笔记）：查我的课堂笔记。任何学习问题，第一步必须先用它查。一次查一个知识点；第一次没查到，可以换个关键词再查。
+2. Bocha Web Search（联网搜索）：只在以下情况使用——
+   - 笔记里查不到；
+   - 笔记内容太少，讲不清楚；
+   - 笔记内容和公认说法明显不一致，需要核实；
+   - 我明确要最新信息。
+   笔记已经够用时，不要联网。
+
+# 工作方式
+1. 先查笔记。笔记够，就只用笔记回答。
+2. 笔记不够，再联网补充。
+3. 怀疑笔记写错了，必须联网核实之后再下结论。
+
+# 输出要求
+1. 先给一句话结论，再展开解释。
+2. 来源标清楚：【来自笔记】【联网补充】【笔记可能有误】三种标记，不许混在一起不标。
+3. 【笔记可能有误】写成：笔记原文 → 正确说法 → 来源链接 → 建议我怎么改笔记。
+4. 用到联网内容时，末尾列出参考链接（最多 3 个）。
+5. 笔记和联网都没找到可靠资料，直接说「没找到可靠资料」，不许编造。
+6. 不要暴露工具名和检索过程，直接给我结果。`;
+
+const P_AG_IV = `# 角色
+你是 AI 产品经理面试教练，帮我准备面试。
+
+# 工具
+1. search_course_notes（查课程笔记）：先查我笔记里和这个知识点相关的内容。可以把一个大知识点拆成几个小点分别查。
+2. Bocha Web Search（联网搜索）：我问到某家公司、某个岗位的真实面试题，或者笔记内容太少时，搜真实面经来补充。
+
+# 输出要求
+1. 默认出 3 道题（我指定了数量就按我的数量），由浅到深。
+2. 每道题给出：
+   - 面试官想考什么（一句话）
+   - 回答话术：口语化，先给结论再展开，150 字以内，像我在面试现场说出来的话
+   - 可能的追问（一句话）
+3. 回答话术以笔记为准；用到联网内容的地方标【联网补充】，题目来自真实面经的标【真实面经】并附链接。
+4. 不编造公司名、面试经历和数据。
+5. 不要暴露工具名和检索过程。`;
+
+const TOOL_DESC = `在我的 AI 产品经理课程笔记里检索和问题相关的内容。回答学习问题、出面试题之前，先用它查笔记。输入一个问题或关键词，返回相关的笔记片段。`;
+const TOOL_PARAM = `要查的问题或关键词，比如「System Prompt 和 User Prompt 的区别」。一次只查一个知识点。`;
+
+const T_OTHER = `我是你的课程笔记学习助手，可以帮你做三件事：
+① 讲解知识点（先查你的笔记，笔记没有再联网）
+② 出面试题和回答话术
+③ 出题考你，交卷后打分
+你想做哪个？`;
+const T_WEBFAIL = `联网搜索暂时不可用。你的笔记里没有记这部分，建议先补笔记，稍后再问我。`;
+const T_NOKEY = `你的笔记里没有记这部分内容。建议先补一下笔记，或者配置好联网搜索后再问我。`;
+const T_OPEN = `我是你的笔记学习助手，可以帮你讲解知识点、出面试题、出题考你。今天想做哪个？`;
+const PLACE = {c1:'【路由测试】进入：知识问答', c2:'【路由测试】进入：面试题', c3:'【路由测试】进入：出题测试', c4:'【路由测试】进入：交卷评分'};
+
+/* ================= V3 路由版 ================= */
+const V3 = {
+  id:'v3', title:'笔记学习助手 V3（路由版）· 搭建手册',
+  boards:{main:'Chatflow · 笔记学习助手 V3（路由版）'},
+  steps:[
+  {id:'s0', r:'总览', no:'0', t:'终局长这样', focus:[], fit:'all',
+   a:[
+    `先 ${ui('查笔记')} 一次，再由 ${ui('分模式')} 分诊到 <b>5 个出口</b>。`,
+    `<b>知识问答</b>最长：笔记够 → 直接回复；笔记不够（模型输出暗号【笔记未覆盖】）→ 博查联网 → 联网回答；博查挂了 → 走失败分支兜底。`,
+    `<b>面试题 / 出题测试 / 交卷评分</b>：各一个 LLM + 一个直接回复。`,
+    `<b>其他</b>：一句写死的回复，不调模型。`,
+    `点画布上任意节点，右边就是它的完整配置；拖动画布平移，右下角缩放。键盘 <kbd>←</kbd> <kbd>→</kbd> 切步骤。顶部可以切到 <b>V4 多 Agent 版</b>。`],
+   tip:'只有一个知识库，就只放一个知识检索节点，而且放在分诊前面：每句话先翻一次笔记，后面哪条分支要用，就在 LLM 的「上下文」里引用它的 result。'},
+
+  {id:'s1_1', r:'第 1 轮 · 分诊台', no:'1.1', t:'创建 Chatflow 应用', focus:['start'],
+   a:[
+    `顶部 ${ui('工作室')} → ${ui('创建空白应用')} → 应用类型选 ${ui('Chatflow')}`,
+    `名称填「笔记学习助手 V3（路由版）」→ ${ui('创建')}`,
+    `画布上如果默认带了 LLM 和直接回复，先删掉（选中按 <kbd>Delete</kbd>），只留 ${ui('用户输入')}`],
+   tip:'Chatflow 没有「选开始方式」这一步——它永远由用户发消息启动。用户说的那句话，就是「用户输入」里的 query。'},
+
+  {id:'s1_2', r:'第 1 轮 · 分诊台', no:'1.2', t:'加问题分类器「分模式」', focus:['cls'],
+   a:[
+    `${ui('用户输入')} 右侧的 ${ui('+')} → ${ui('问题分类器')}，点标题改名「分模式」`,
+    `右侧面板：输入变量选 ${Q}；模型选一个快、便宜的（gpt-4.1-mini 就够）`,
+    `加到 5 个分类。每个分类：<b>双击小标题</b>改名，<b>下面的描述框</b>粘贴描述（右侧面板每条都有复制）`,
+    `展开 ${ui('高级设置')}，${ui('指令')} 里粘贴指令；有 ${ui('记忆')} 开关就打开`],
+   tip:'分类描述是模型真正读的内容，「不包括……」这种边界句最值钱；小标题只是画布上给你看的。'},
+
+  {id:'s1_3', r:'第 1 轮 · 分诊台', no:'1.3', t:'5 个出口各接一个直接回复', focus:['a1','a2','a3','a4','a5'], sel:'a5',
+   a:[
+    `分类器每个分类右侧都有一个小圆点（出口），点它的 ${ui('+')} → ${ui('直接回复')}`,
+    `前 4 个先写占位文字，只为验证分流（点节点看右侧面板，有复制）`,
+    `「其他」这个直接写正式文字，以后不用改`],
+   tip:'直接回复会按创建顺序自动叫「直接回复、直接回复 2……5」。本手册就按这个名字称呼，和你画布上对得上。'},
+
+  {id:'s1_4', r:'第 1 轮 · 分诊台', no:'1.4', t:'预览，测分流', focus:[], fitIds:['cls','a1','a2','a3','a4','a5'],
+   a:[
+    `右上 ${ui('▷ 预览')}，在对话框依次发下面 5 句：`,
+    `<table class="t"><tr><th>发送</th><th>应该进入</th></tr>
+      <tr><td>System Prompt 和 User Prompt 有什么区别？</td><td>知识问答 → 直接回复</td></tr>
+      <tr><td>给我 Agent 相关的面试题</td><td>面试题 → 直接回复 2</td></tr>
+      <tr><td>用提示词工程模块考我 5 道题</td><td>出题测试 → 直接回复 3</td></tr>
+      <tr><td>1.B 2.C 3.A 4.角色和任务 5.不知道</td><td>交卷评分 → 直接回复 4</td></tr>
+      <tr><td>今天北京天气怎么样</td><td>其他 → 直接回复 5</td></tr></table>`,
+    `看每条回复上方显示的节点名（${ui('直接回复 N ›')}），就知道走了哪条路`,
+    `分错了 → 回去改那一类的<b>描述</b>，别急着往后搭`],
+   check:'5 句全部进对 = 分诊台完成。骨架先对，后面填什么都不会乱。'},
+
+  {id:'s2_1', r:'第 2 轮 · 查笔记 + 三条分支', no:'2.1', t:'插入知识检索「查笔记」', focus:['kb'],
+   a:[
+    `鼠标移到 ${ui('用户输入')} 和 ${ui('分模式')} 之间的<b>连线</b>上，中间会出现 ${ui('+')} → 选 ${ui('知识检索')}，它会直接插在中间`,
+    `点标题改名「查笔记」`,
+    `查询文本选 ${Q}；知识库点 ${ui('+')} 选「我的课程笔记」；检索设置不用动`],
+   tip:'一个知识库只放一个检索节点，放在分诊前面：每句话只查一次，也不容易撞上免费版「知识库每分钟 10 次」的限速。',
+   warn:'别把 5 个出口都连到同一个检索节点：几条路汇到一个节点后，下游就分不清这句话是哪种模式了。'},
+
+  {id:'s2_2', r:'第 2 轮 · 查笔记 + 三条分支', no:'2.2', t:'面试题分支：LLM「出面试题」', focus:['llm_iv','a2'], sel:'llm_iv',
+   a:[
+    `鼠标移到「面试题」出口和 ${ui('直接回复 2')} 之间的连线 → ${ui('+')} → ${ui('LLM')}，改名「出面试题」`,
+    `${ui('上下文')} 选 ${v('查笔记','result')}`,
+    `${ui('SYSTEM')} 粘贴提示词 → 删掉<mark>标黄的那一行</mark> → 在原位置按 <kbd>/</kbd> 选 ${ui('上下文')}`,
+    `${ui('添加消息')} → 新增一条 USER，按 <kbd>/</kbd> 选 ${Q}`,
+    `点 ${ui('直接回复 2')}：删掉占位文字，按 <kbd>/</kbd> 选 ${v('出面试题','text')}`],
+   tip:'分支里不用再放检索节点——直接引用前面「查笔记」的 result。这就是昨天 Agent 里「挂知识库」拆出来单独成一步：Agent 里是模型决定查不查，这里是每次必查。'},
+
+  {id:'s2_3', r:'第 2 轮 · 查笔记 + 三条分支', no:'2.3', t:'出题测试分支：LLM「出题」', focus:['llm_quiz','a3'], sel:'llm_quiz',
+   a:[
+    `同上：「出题测试」出口和 ${ui('直接回复 3')} 之间的连线 → ${ui('+')} → ${ui('LLM')}，改名「出题」`,
+    `${ui('上下文')} 选 ${v('查笔记','result')}；SYSTEM 粘贴出题提示词（删黄行、按 / 插上下文）；USER 选 ${Q}`,
+    `${ui('直接回复 3')} 改成 ${v('出题','text')}`],
+   tip:'提示词第 4 条把作答格式写死成「1.B 2.C……」——用户照格式交卷，分类器就更容易认出这是「交卷评分」。好的流程会反过来塑造用户的输入。'},
+
+  {id:'s2_4', r:'第 2 轮 · 查笔记 + 三条分支', no:'2.4', t:'交卷评分分支：LLM「评分」（开记忆）', focus:['llm_grade','a4'], sel:'llm_grade',
+   a:[
+    `「交卷评分」出口和 ${ui('直接回复 4')} 之间插入 ${ui('LLM')}，改名「评分」`,
+    `${ui('上下文')} 选 ${v('查笔记','result')}；SYSTEM 粘贴评分提示词（删黄行、按 / 插上下文）`,
+    `<b>打开 ${ui('记忆')}</b>，窗口保持默认——这样它能看到上一轮出的题`,
+    `USER：打开记忆后，先看面板里是否已经自动带上了本轮的用户问题；<b>已经有就别再手动加</b>，没有再按 / 加 ${Q}`,
+    `${ui('直接回复 4')} 改成 ${v('评分','text')}`],
+   tip:'记忆开关就是昨天构成四样里的「短期记忆（这次对话）」。原理 RAG 之后再讲，今天会开关就行。提示词第 6 条是给「没有记忆」时兜底的。'},
+
+  {id:'s2_5', r:'第 2 轮 · 查笔记 + 三条分支', no:'2.5', t:'测三条分支', focus:[], fitIds:['kb','cls','llm_iv','llm_quiz','llm_grade','a2','a3','a4'],
+   a:[
+    `预览发「给我 Agent 相关的面试题」→ 3 道题，每道有考点、话术、追问`,
+    `<b>同一个对话里</b>：「用提示词工程模块考我 5 道题」→ 按格式作答 → 看评分`,
+    `预览面板右上 ${ui('↻')} 开一个新对话，直接发「1.B 2.C 3.A」→ 应该回「没找到这次对话里的测试题」`],
+   check:'三条都对 = 第 2 轮完成。你已经会引用检索结果、会给 LLM 喂上下文、会开记忆了。'},
+
+  {id:'s3_1', r:'第 3 轮 · 知识问答写死', no:'3.1', t:'LLM「笔记回答」', focus:['llm_note'],
+   a:[
+    `「知识问答」出口和 ${ui('直接回复')} 之间插入 ${ui('LLM')}，改名「笔记回答」`,
+    `${ui('上下文')} 选 ${v('查笔记','result')}；SYSTEM 粘贴（删黄行、按 / 插上下文）；USER 选 ${Q}`],
+   tip:'规则 1 是整条路的开关：笔记不够时只输出暗号【笔记未覆盖】。模型负责判断「够不够」，后面的流程负责「够了怎么办、不够怎么办」。'},
+
+  {id:'s3_2', r:'第 3 轮 · 知识问答写死', no:'3.2', t:'条件分支「笔记够不够」', focus:['ifn','a1'], sel:'ifn',
+   a:[
+    `「笔记回答」和 ${ui('直接回复')} 之间的连线 → ${ui('+')} → ${ui('条件分支')}，改名「笔记够不够」`,
+    `IF 右侧 ${ui('+ 添加条件')} → 选 ${v('笔记回答','text')} → 条件选 ${ui('包含')} → 值填 <code>【笔记未覆盖】</code>`,
+    `<b>检查连线：${ui('直接回复')} 必须接在 ELSE 上。</b>插入后如果它连在 IF 上：选中那根线按 <kbd>Delete</kbd>，再从 ELSE 右侧的圆点拖一根线到 ${ui('直接回复')}`,
+    `点 ${ui('直接回复')}：占位文字换成 ${v('笔记回答','text')}`],
+   tip:'用「包含」不用「是」——模型偶尔会在暗号前后多带几个字，「包含」更稳。'},
+
+  {id:'s3_3', r:'第 3 轮 · 知识问答写死', no:'3.3', t:'IF 分支：工具 Bocha Web Search', focus:['tool'],
+   a:[
+    `IF 右侧 ${ui('+')} → ${ui('工具')} → 搜 Bocha → 选 ${ui('Bocha Web Search')}`,
+    `第一次用会要求授权：选已有凭证，或填博查 API Key`,
+    `查询参数选 ${Q}，其他参数默认`],
+   warn:`没有博查 Key：IF 后面直接接一个 ${ui('直接回复')}，写死下面这句，然后跳过 3.4。${cb(T_NOKEY)}`},
+
+  {id:'s3_4', r:'第 3 轮 · 知识问答写死', no:'3.4', t:'LLM「联网回答」+ 直接回复 6', focus:['llm_web','a6'], sel:'llm_web',
+   a:[
+    `博查节点右侧 ${ui('+')} → ${ui('LLM')}，改名「联网回答」，<b>不用设上下文</b>`,
+    `SYSTEM 粘贴；USER 粘贴那两行，再用 <kbd>/</kbd> 把两处黄字换成 ${Q} 和 ${v('Bocha Web Search','text')}`,
+    `「联网回答」右侧 ${ui('+')} → ${ui('直接回复')}（会叫直接回复 6），内容选 ${v('联网回答','text')}`]},
+
+  {id:'s3_5', r:'第 3 轮 · 知识问答写死', no:'3.5', t:'测两条路', focus:[], fitIds:['llm_note','ifn','tool','llm_web','a6','a1'],
+   a:[
+    `<table class="t"><tr><th>发送</th><th>应该看到</th></tr>
+      <tr><td>System Prompt 和 User Prompt 有什么区别？</td><td>笔记够不够 → <b>ELSE</b> → 直接回复，没有调博查，结尾标【来自笔记】</td></tr>
+      <tr><td>什么是 A2A 协议（换成你笔记里肯定没记的）</td><td>笔记回答输出【笔记未覆盖】→ <b>IF</b> → 博查 → 联网回答 → 直接回复 6</td></tr></table>`,
+    `点回复上方那一栏（${ui('直接回复 ›')}）展开，能看到这次走过的每个节点`],
+   check:'今天最关键的一步：笔记够就不联网，不够才联网，每次都一样。这个判断不再靠运气。'},
+
+  {id:'s3_6', r:'第 3 轮 · 知识问答写死', no:'3.6', t:'调试三件套：故意弄坏再修好', focus:['ifn','llm_note'], sel:'ifn', chg:['ifn'],
+   a:[
+    `故意改错：把「笔记够不够」的条件值改成 <code>【笔记没覆盖】</code>（错一个字）`,
+    `预览发一个笔记里没有的问题 → 回复只剩孤零零一行【笔记未覆盖】`,
+    `<b>① 看追踪</b>：展开这条回复的运行过程，看到走的是 ELSE，没走 IF → 问题出在「笔记够不够」`,
+    `<b>② 单节点运行</b>：选中「笔记回答」，点面板上的运行 ▷，只测这一个节点，确认它输出的就是暗号 → 模型没问题，是判断写错了。面板里的 ${ui('上次运行')} 能看到它最近一次的输入输出`,
+    `<b>③ 查看缓存（变量检查器）</b>：画布底部 ${ui('查看缓存')}，每个跑过的节点的输出都存在这里。把「笔记回答 / text」直接改成任意文字，再只运行下游节点——不用重新提问、不多花 token`,
+    `条件值改回 <code>【笔记未覆盖】</code>，再跑一遍`],
+   tip:'排查顺序：追踪找到哪一步 → 单节点运行确认是它自己错还是输入错 → 查看缓存换个输入再试。'},
+
+  {id:'s3_7', r:'第 3 轮 · 知识问答写死', no:'3.7', t:'异常处理：博查挂了走失败分支', focus:['tool','a7'], sel:'tool', chg:['tool'],
+   a:[
+    `选中 ${ui('Bocha Web Search')} → 面板里找 ${ui('异常处理')}：无 / 默认值 / 失败分支`,
+    `选 ${ui('失败分支')} → 节点上多出一个橙色的失败出口 → ${ui('+')} → ${ui('直接回复')}（直接回复 7），写死兜底文字（点节点看面板）`,
+    `顺手打开 ${ui('失败时重试')}，1–2 次`],
+   tip:'上线前，每个调模型、调工具的节点都想一遍「它挂了怎么办」——就是需求文档 ④ 段「每个判断两个出口」在工具里的样子。'},
+
+  {id:'s4_1', r:'第 4 轮 · 上线与对比', no:'4.1', t:'功能：开场白 + 引用', focus:[], fit:'all', panel:'features',
+   a:[
+    `右上 ${ui('功能')} → 打开 ${ui('对话开场白')}，粘贴开场白，再加 3 个开场问题（右侧面板有复制）`,
+    `打开 ${ui('引用和归属')}：用到笔记的回答会显示可点开的出处`]},
+
+  {id:'s4_2', r:'第 4 轮 · 上线与对比', no:'4.2', t:'发布', focus:[], fit:'all',
+   a:[
+    `右上 ${ui('发布')} → ${ui('发布更新')}（每次改完都要再点一次，不然线上还是旧版）`,
+    `${ui('打开 Web 应用')} → 复制链接发群里，手机扫码也能用`,
+    `顺带一句：Chatflow 发布出来是<b>聊天页</b>；Workflow 发布出来是<b>表单页</b>——所以 Workflow 适合「交一次出一次」的活`,
+    `${ui('访问点')} 里管 Web 应用、API、MCP 服务器`]},
+
+  {id:'s4_3', r:'第 4 轮 · 上线与对比', no:'4.3', t:'日志：看真实用户在问什么', focus:[], fit:'all',
+   a:[
+    `左侧导航 ${ui('日志')}：每轮对话都有记录——问了什么、走了哪条路、花了多少 token`,
+    `点开任意一条，和预览里展开的运行过程一样`],
+   tip:'发布不是终点：看日志 → 发现分错类、答不好的问题 → 回画布改 → 再发布。这就是 AI 产品上线后 PM 的日常。'},
+
+  {id:'s4_4', r:'第 4 轮 · 上线与对比', no:'4.4', t:'对比实验：昨天的 Agent vs 今天的 Chatflow', focus:[], fit:'all',
+   a:[
+    `开两个标签页：W2D2 的 Agent 版、今天的 Chatflow 版，同样 6 句各发一遍，边发边填：`,
+    `<table class="t"><tr><th>#</th><th>发送</th><th>Agent 版：查笔记了吗 / 联网了吗</th><th>Chatflow 版：走了哪条路</th></tr>
+      <tr><td>1</td><td>System Prompt 和 User Prompt 有什么区别？</td><td></td><td></td></tr>
+      <tr><td>2</td><td>笔记里没有的知识点</td><td></td><td></td></tr>
+      <tr><td>3</td><td>给我 Agent 相关的面试题</td><td></td><td></td></tr>
+      <tr><td>4</td><td>用提示词工程模块考我 5 道题 → 交卷</td><td></td><td></td></tr>
+      <tr><td>5</td><td>今天北京天气怎么样</td><td></td><td></td></tr>
+      <tr><td>6</td><td><b>给我讲讲 RAG，再出 3 道面试题</b></td><td></td><td></td></tr></table>`,
+    `第 6 句是故意的：混合请求。分类器只能挑一条路，Agent 能两件事一起干`,
+    `<table class="t"><tr><th></th><th>Chatflow</th><th>Agent</th></tr>
+      <tr><td>步骤</td><td>你画死</td><td>模型自己决定</td></tr>
+      <tr><td>稳定</td><td>同一个问题每次走同一条路</td><td>时灵时不灵</td></tr>
+      <tr><td>成本</td><td>「其他」0 token；该查才查</td><td>每一步都要模型想一下</td></tr>
+      <tr><td>排查</td><td>每一步看得清</td><td>只能看它的思考过程猜</td></tr>
+      <tr><td>灵活</td><td>混合请求接不住</td><td>能接住</td></tr></table>`],
+   check:'收束语：骨架用流程写死，个别需要灵活判断的环节再放一个 Agent 节点。能写死的别交给模型，写不死的才交给 Agent。→ 顶部切到「V4 多 Agent 版」继续。'},
+  ],
+  nodes:[
+    {id:'start',     type:'start', title:'用户输入',         x:0,    y:390, w:200, from:'s1_1'},
+    {id:'kb',        type:'kb',    title:'查笔记',           x:270,  y:390, w:220, from:'s2_1'},
+    {id:'cls',       type:'cls',   title:'分模式',           x:560,  y:330, w:260, from:'s1_2'},
+    {id:'llm_note',  type:'llm',   title:'笔记回答',         x:930,  y:60,  w:220, from:'s3_1', ctx:true, prompt:'P_NOTE'},
+    {id:'ifn',       type:'if',    title:'笔记够不够',       x:1220, y:60,  w:240, from:'s3_2'},
+    {id:'tool',      type:'tool',  title:'Bocha Web Search', x:1540, y:10,  w:230, from:'s3_3', failFrom:'s3_7'},
+    {id:'llm_web',   type:'llm',   title:'联网回答',         x:1850, y:10,  w:220, from:'s3_4', prompt:'P_WEB', web:true},
+    {id:'a6',        type:'ans',   title:'直接回复 6',       x:2150, y:10,  w:220, from:'s3_4'},
+    {id:'a7',        type:'ans',   title:'直接回复 7',       x:1850, y:170, w:240, from:'s3_7'},
+    {id:'a1',        type:'ans',   title:'直接回复',         x:1540, y:250, w:220, from:'s1_3'},
+    {id:'llm_iv',    type:'llm',   title:'出面试题',         x:930,  y:420, w:220, from:'s2_2', ctx:true, prompt:'P_IV'},
+    {id:'a2',        type:'ans',   title:'直接回复 2',       x:1220, y:420, w:220, from:'s1_3'},
+    {id:'llm_quiz',  type:'llm',   title:'出题',             x:930,  y:560, w:220, from:'s2_3', ctx:true, prompt:'P_QUIZ'},
+    {id:'a3',        type:'ans',   title:'直接回复 3',       x:1220, y:560, w:220, from:'s1_3'},
+    {id:'llm_grade', type:'llm',   title:'评分',             x:930,  y:700, w:220, from:'s2_4', ctx:true, mem:true, prompt:'P_GRADE'},
+    {id:'a4',        type:'ans',   title:'直接回复 4',       x:1220, y:700, w:220, from:'s1_3'},
+    {id:'a5',        type:'ans',   title:'直接回复 5',       x:930,  y:840, w:250, from:'s1_3'},
+  ],
+  ans:{
+    a1:[{from:'s1_3', place:PLACE.c1}, {from:'s3_2', ref:['笔记回答','text']}],
+    a2:[{from:'s1_3', place:PLACE.c2}, {from:'s2_2', ref:['出面试题','text']}],
+    a3:[{from:'s1_3', place:PLACE.c3}, {from:'s2_3', ref:['出题','text']}],
+    a4:[{from:'s1_3', place:PLACE.c4}, {from:'s2_4', ref:['评分','text']}],
+    a5:[{from:'s1_3', fixed:T_OTHER}],
+    a6:[{from:'s3_4', ref:['联网回答','text']}],
+    a7:[{from:'s3_7', fixed:T_WEBFAIL}],
+  },
+  edges:[
+    {s:'start', h:'out', t:'cls', from:'s1_2', until:'s2_1'},
+    {s:'start', h:'out', t:'kb',  from:'s2_1'},
+    {s:'kb',    h:'out', t:'cls', from:'s2_1'},
+    {s:'cls', h:'c1', t:'a1',       from:'s1_3', until:'s3_1'},
+    {s:'cls', h:'c1', t:'llm_note', from:'s3_1'},
+    {s:'llm_note', h:'out', t:'a1', from:'s3_1', until:'s3_2'},
+    {s:'llm_note', h:'out', t:'ifn', from:'s3_2'},
+    {s:'ifn', h:'else', t:'a1',   from:'s3_2'},
+    {s:'ifn', h:'if',   t:'tool', from:'s3_3'},
+    {s:'tool', h:'out', t:'llm_web', from:'s3_4'},
+    {s:'llm_web', h:'out', t:'a6', from:'s3_4'},
+    {s:'tool', h:'fail', t:'a7', from:'s3_7', fail:true},
+    {s:'cls', h:'c2', t:'a2',     from:'s1_3', until:'s2_2'},
+    {s:'cls', h:'c2', t:'llm_iv', from:'s2_2'},
+    {s:'llm_iv', h:'out', t:'a2', from:'s2_2'},
+    {s:'cls', h:'c3', t:'a3',       from:'s1_3', until:'s2_3'},
+    {s:'cls', h:'c3', t:'llm_quiz', from:'s2_3'},
+    {s:'llm_quiz', h:'out', t:'a3', from:'s2_3'},
+    {s:'cls', h:'c4', t:'a4',        from:'s1_3', until:'s2_4'},
+    {s:'cls', h:'c4', t:'llm_grade', from:'s2_4'},
+    {s:'llm_grade', h:'out', t:'a4', from:'s2_4'},
+    {s:'cls', h:'c5', t:'a5', from:'s1_3'},
+  ],
+};
+
+/* ================= V4 多 Agent 版 ================= */
+const V4 = {
+  id:'v4', title:'笔记学习助手 V4（多 Agent 版）· 搭建手册',
+  boards:{main:'Chatflow · 笔记学习助手 V4（多 Agent 版）', tool:'Workflow · 查课程笔记（一个小应用，发布成工具）'},
+  steps:[
+  {id:'t0', r:'总览', no:'0', t:'终局长这样', focus:[], fit:'all',
+   a:[
+    `骨架和 V3 一模一样：${ui('查笔记')} → ${ui('分模式')} → 5 个出口。`,
+    `只换两条分支：<b>知识问答 → 答疑 Agent</b>；<b>面试题 → 面试官 Agent</b>。V3 里手写的「笔记回答 → 条件分支 → 博查 → 联网回答」，整串交给答疑 Agent 自己决定。`,
+    `<b>出题 / 评分 / 其他</b>不动——它们不需要自己拿主意，继续写死。`,
+    `两个 Agent 查笔记靠一个工具「查课程笔记」：它是一个 3 节点的小 Workflow，发布成工具后挂到 Agent 上（第 1 轮先做它）。`],
+   tip:'怎么判断是不是真多 Agent：① 至少两个 Agent 节点；② 每个 Agent 有自己的工具，自己决定调不调、调几次；③ 它们之间有分工（这里是路由阵型）。V3 一条都不满足，V4 三条都满足。'},
+
+  {id:'t1_1', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.1', t:'新建一个 Workflow 应用', board:'tool', focus:['w_start'],
+   a:[
+    `${ui('工作室')} → ${ui('创建空白应用')} → 这次选 ${ui('工作流')}（不是 Chatflow）`,
+    `名称填「查课程笔记」→ ${ui('创建')} → 开始方式选 ${ui('用户输入')}`],
+   tip:'今天唯一一次搭 Workflow。它「交一次输入、出一次结果」——正好就是一个工具的样子。Workflow 日常很少单独用，最常见的用法就是被包成工具给 Agent 调。'},
+
+  {id:'t1_2', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.2', t:'加一个输入字段 query', board:'tool', focus:['w_start'], chg:['w_start'],
+   a:[
+    `点 ${ui('用户输入')} → ${ui('输入字段')} 旁的 ${ui('+')}`,
+    `字段类型 ${ui('文本')}；变量名称 <code>query</code>；显示名称「要查的问题」；勾上 ${ui('必填')}`],
+   tip:'Workflow 没有 Chatflow 那种自带的「用户这句话」，要什么输入就自己加字段。以后 Agent 调这个工具时，就是由它来填这个 query。'},
+
+  {id:'t1_3', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.3', t:'知识检索', board:'tool', focus:['w_kb'],
+   a:[
+    `${ui('用户输入')} 右侧 ${ui('+')} → ${ui('知识检索')}`,
+    `查询文本选 ${Q}；知识库选「我的课程笔记」；检索设置不用动`]},
+
+  {id:'t1_4', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.4', t:'输出 notes', board:'tool', focus:['w_out'],
+   a:[
+    `${ui('知识检索')} 右侧 ${ui('+')} → ${ui('输出')}`,
+    `输出变量 ${ui('+')}：变量名 <code>notes</code>，值选 ${v('知识检索','result')}`],
+   warn:'输出变量别叫 text、files、json——这三个名字被工具保留了，发布成工具后会冲突。'},
+
+  {id:'t1_5', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.5', t:'运行测试', board:'tool', focus:[], fit:'all',
+   a:[
+    `右上 ${ui('运行')} → 「要查的问题」填 <code>System Prompt 和 User Prompt 的区别</code> → ${ui('开始运行')}`,
+    `三个节点都绿了，结果里的 notes 有笔记片段 = 工具本身没问题`],
+   check:'先单独把工具跑通，再挂给 Agent。不然 Agent 答错了，你分不清是 Agent 的问题还是工具的问题。'},
+
+  {id:'t1_6', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.6', t:'发布为工具', board:'tool', focus:[], fit:'all', panel:'publishTool',
+   a:[
+    `右上 ${ui('发布')} → ${ui('发布更新')} → 再点 ${ui('发布为工具')}`,
+    `按右侧面板填：名称、<b>工具调用名称</b> <code>search_course_notes</code>、描述、参数 query 的描述（都有复制）`,
+    `query 的填写方式选「由 LLM 填入」（让 Agent 自己填要查什么）`],
+   tip:'工具描述就是 W2D2 需求文档 ⑤ 段「工具清单：什么时候用」——Agent 靠这段话决定要不要调它。写不清，Agent 就不会调。',
+   warn:'发布为工具的弹窗字段名以实际界面为准（待实测）。工具调用名称如果改了，两个 Agent 的指令里 search_course_notes 也要一起改。'},
+
+  {id:'t2_1', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.1', t:'复制 V3 应用', focus:[], fit:'all', quiet:true,
+   a:[
+    `${ui('工作室')} → 找到「笔记学习助手 V3（路由版）」卡片 → ${ui('···')} → ${ui('复制')}`,
+    `新应用改名「笔记学习助手 V4（多 Agent 版）」，打开编排`],
+   tip:'V3 原样留着，最后要拿来对比。'},
+
+  {id:'t2_2', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.2', t:'删掉知识问答那串手写流程', focus:['llm_note','ifn','tool','llm_web','a6','a7'], fitIds:['cls','llm_note','ifn','tool','llm_web','a6','a7','a1'],
+   a:[
+    `删掉 6 个节点：笔记回答、笔记够不够、Bocha Web Search、联网回答、直接回复 6、直接回复 7（逐个选中按 <kbd>Delete</kbd>）`,
+    `<b>保留 ${ui('直接回复')}</b>——它等下接答疑 Agent 的回答`],
+   tip:'这 6 个节点就是你在 V3 里手写的「查笔记 → 判断 → 联网 → 兜底」。下一步，这整串交给一个 Agent 自己决定。'},
+
+  {id:'t2_3', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.3', t:'加「答疑 Agent」', focus:['ag_qa','a1'], sel:'ag_qa',
+   a:[
+    `「知识问答」出口的 ${ui('+')} → ${ui('Agent')}，改名「答疑 Agent」`,
+    `从答疑 Agent 右侧圆点拖一根线到 ${ui('直接回复')}`,
+    `按右侧面板配：Agent 策略、模型、<b>工具列表加两个</b>（查课程笔记、Bocha Web Search）、指令、查询、最大迭代次数`,
+    `点 ${ui('直接回复')}：内容换成 ${v('答疑 Agent','text')}`],
+   warn:`<b>待实测：</b>① 策略列表是空的 → ${ui('插件')} → 市场里搜「Agent 策略」装 Dify 官方的那个；② 点开 Agent 节点看到的是「从空白开始 / 邀请已有 Agent」（新版 Agent）→ 选「从空白开始」，<b>提示词</b>里粘指令、<b>工具</b>照加，<b>Agent 任务</b>里写「回答：」再按 / 选 query。`},
+
+  {id:'t2_4', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.4', t:'把「出面试题」换成「面试官 Agent」', focus:['llm_iv','ag_iv','a2'], sel:'ag_iv',
+   a:[
+    `选中「出面试题」LLM → <kbd>Delete</kbd>`,
+    `「面试题」出口的 ${ui('+')} → ${ui('Agent')}，改名「面试官 Agent」，再拖线到 ${ui('直接回复 2')}`,
+    `配置和答疑 Agent 一样（同样两个工具），只是<b>指令换成面试官的</b>（右侧面板）`,
+    `${ui('直接回复 2')} 内容换成 ${v('面试官 Agent','text')}`]},
+
+  {id:'t2_5', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.5', t:'其余不动，检查一遍', focus:['kb','llm_quiz','llm_grade','a5'], fit:'all',
+   a:[
+    `${ui('出题')}、${ui('评分')}、${ui('直接回复 5')} 保持原样——它们不需要自己拿主意`,
+    `${ui('查笔记')} 也留着：出题和评分还在用它的 result；两个 Agent 用的是自己的工具`,
+    `右上检查清单没有红点，就可以测了`],
+   check:'现在画布上有 2 个 Agent，每个都带着自己的工具、自己决定调几次，由分类器分工派活——这就是「路由阵型的多 Agent」。'},
+
+  {id:'t3_1', r:'第 3 轮 · 测试与对比', no:'3.1', t:'测答疑 Agent：看它自己怎么决定', focus:['ag_qa'], fitIds:['cls','ag_qa','a1'],
+   a:[
+    `<table class="t"><tr><th>发送</th><th>应该看到它怎么做</th></tr>
+      <tr><td>System Prompt 和 User Prompt 有什么区别？</td><td>只调「查课程笔记」，<b>不联网</b>，标【来自笔记】</td></tr>
+      <tr><td>什么是 A2A 协议（笔记里没记的）</td><td>先查笔记 → 没有 → 调博查 → 标【联网补充】+ 链接</td></tr>
+      <tr><td>MCP 是谁提出的？（W2D2 故意在笔记里写错的那条）</td><td>查笔记 → 发现可疑 → 调博查核实 → 输出【笔记可能有误】</td></tr></table>`,
+    `看过程：展开回复上方的运行过程 → 点 ${ui('答疑 Agent')} → 看它每一轮调了什么工具、查了什么关键词`],
+   tip:'第 3 句是 V3 做不到的：V3 的纠错只能靠模型自觉，没法真去查证；Agent 能自己决定「这条可疑，我去搜一下」。这就是这一环值得交给 Agent 的理由。'},
+
+  {id:'t3_2', r:'第 3 轮 · 测试与对比', no:'3.2', t:'测面试官 Agent', focus:['ag_iv'], fitIds:['cls','ag_iv','a2'],
+   a:[
+    `「给我 Agent 相关的面试题」→ 看它是不是把 Agent 拆成几个小点、查了几次笔记`,
+    `「大厂 AI 产品经理面试会怎么问 RAG？」→ 应该去联网找真实面经，题目标【真实面经】+ 链接`]},
+
+  {id:'t3_3', r:'第 3 轮 · 测试与对比', no:'3.3', t:'V3 vs V4 对比', focus:[], fit:'all',
+   a:[
+    `V3、V4 两个标签页，同样 4 句各发一遍，看运行过程填表：`,
+    `<table class="t"><tr><th>#</th><th>发送</th><th>V3：走了哪条路</th><th>V4：Agent 调了哪些工具、几轮</th><th>谁答得好 / 谁更快更省</th></tr>
+      <tr><td>1</td><td>System Prompt 和 User Prompt 有什么区别？</td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td>什么是 A2A 协议</td><td></td><td></td><td></td></tr>
+      <tr><td>3</td><td>MCP 是谁提出的？（笔记写错的那条）</td><td></td><td></td><td></td></tr>
+      <tr><td>4</td><td>给我 Agent 相关的面试题</td><td></td><td></td><td></td></tr></table>`,
+    `<table class="t"><tr><th></th><th>V3 写死路由</th><th>V4 路由 + 多 Agent</th></tr>
+      <tr><td>稳定</td><td>高，每次同一条路</td><td>骨架稳，Agent 分支内部会有波动</td></tr>
+      <tr><td>纠错查证</td><td>做不到</td><td>能自己去查</td></tr>
+      <tr><td>成本 / 速度</td><td>低 / 快</td><td>Agent 可能调好几轮，更贵更慢</td></tr>
+      <tr><td>排查</td><td>每一步清楚</td><td>要看 Agent 每一轮的工具调用</td></tr>
+      <tr><td>混合请求</td><td>接不住</td><td><b>还是接不住</b>——分类器只挑一条路</td></tr></table>`],
+   check:'结论：写死写不下去的环节（要反复查证、要自己决定查什么），才值得升级成 Agent。V2 单 Agent → V3 写死路由 → V4 路由 + 多 Agent，正好是 W2D2 光谱的后三格。'},
+
+  {id:'t3_4', r:'第 3 轮 · 测试与对比', no:'3.4', t:'发布', focus:[], fit:'all',
+   a:[
+    `右上 ${ui('发布')} → ${ui('发布更新')} → ${ui('打开 Web 应用')}，链接发群里`,
+    `「混合请求接不住」怎么办？V4 也没解决……`],
+   egg:'做完了？左上角那个小机器人，好像藏着点什么……（连点三下）'},
+  ],
+  nodes:[
+    /* Workflow 工具画布 */
+    {id:'w_start', type:'start', title:'用户输入', x:0,   y:200, w:210, from:'t1_1', board:'tool', fieldsFrom:'t1_2'},
+    {id:'w_kb',    type:'kb',    title:'知识检索', x:290, y:200, w:230, from:'t1_3', board:'tool'},
+    {id:'w_out',   type:'out',   title:'输出',     x:600, y:200, w:230, from:'t1_4', board:'tool'},
+    /* Chatflow 主画布（从 V3 复制而来） */
+    {id:'start',     type:'start', title:'用户输入',         x:0,    y:390, w:200, from:'t2_1'},
+    {id:'kb',        type:'kb',    title:'查笔记',           x:270,  y:390, w:220, from:'t2_1', v4note:true},
+    {id:'cls',       type:'cls',   title:'分模式',           x:560,  y:330, w:260, from:'t2_1'},
+    {id:'llm_note',  type:'llm',   title:'笔记回答',         x:930,  y:60,  w:220, from:'t2_1', until:'t2_2', ctx:true, prompt:'P_NOTE'},
+    {id:'ifn',       type:'if',    title:'笔记够不够',       x:1220, y:60,  w:240, from:'t2_1', until:'t2_2'},
+    {id:'tool',      type:'tool',  title:'Bocha Web Search', x:1540, y:10,  w:230, from:'t2_1', until:'t2_2', failFrom:'t2_1'},
+    {id:'llm_web',   type:'llm',   title:'联网回答',         x:1850, y:10,  w:220, from:'t2_1', until:'t2_2', prompt:'P_WEB', web:true},
+    {id:'a6',        type:'ans',   title:'直接回复 6',       x:2150, y:10,  w:220, from:'t2_1', until:'t2_2'},
+    {id:'a7',        type:'ans',   title:'直接回复 7',       x:1850, y:170, w:240, from:'t2_1', until:'t2_2'},
+    {id:'a1',        type:'ans',   title:'直接回复',         x:1540, y:250, w:220, from:'t2_1', moves:[{from:'t2_3', x:1260, y:90}]},
+    {id:'ag_qa',     type:'agent', title:'答疑 Agent',       x:930,  y:70,  w:240, from:'t2_3', prompt:'P_AG_QA'},
+    {id:'llm_iv',    type:'llm',   title:'出面试题',         x:930,  y:420, w:220, from:'t2_1', until:'t2_4', ghostPos:{x:930, y:262}, ctx:true, prompt:'P_IV'},
+    {id:'ag_iv',     type:'agent', title:'面试官 Agent',     x:930,  y:385, w:240, from:'t2_4', prompt:'P_AG_IV'},
+    {id:'a2',        type:'ans',   title:'直接回复 2',       x:1260, y:420, w:220, from:'t2_1'},
+    {id:'llm_quiz',  type:'llm',   title:'出题',             x:930,  y:560, w:220, from:'t2_1', ctx:true, prompt:'P_QUIZ'},
+    {id:'a3',        type:'ans',   title:'直接回复 3',       x:1260, y:560, w:220, from:'t2_1'},
+    {id:'llm_grade', type:'llm',   title:'评分',             x:930,  y:700, w:220, from:'t2_1', ctx:true, mem:true, prompt:'P_GRADE'},
+    {id:'a4',        type:'ans',   title:'直接回复 4',       x:1260, y:700, w:220, from:'t2_1'},
+    {id:'a5',        type:'ans',   title:'直接回复 5',       x:930,  y:840, w:250, from:'t2_1'},
+  ],
+  ans:{
+    a1:[{from:'t2_1', ref:['笔记回答','text']}, {from:'t2_3', ref:['答疑 Agent','text']}],
+    a2:[{from:'t2_1', ref:['出面试题','text']}, {from:'t2_4', ref:['面试官 Agent','text']}],
+    a3:[{from:'t2_1', ref:['出题','text']}],
+    a4:[{from:'t2_1', ref:['评分','text']}],
+    a5:[{from:'t2_1', fixed:T_OTHER}],
+    a6:[{from:'t2_1', ref:['联网回答','text']}],
+    a7:[{from:'t2_1', fixed:T_WEBFAIL}],
+  },
+  edges:[
+    {s:'w_start', h:'out', t:'w_kb', from:'t1_3'},
+    {s:'w_kb', h:'out', t:'w_out', from:'t1_4'},
+    {s:'start', h:'out', t:'kb',  from:'t2_1'},
+    {s:'kb',    h:'out', t:'cls', from:'t2_1'},
+    {s:'cls', h:'c1', t:'llm_note', from:'t2_1', until:'t2_2'},
+    {s:'llm_note', h:'out', t:'ifn', from:'t2_1', until:'t2_2'},
+    {s:'ifn', h:'else', t:'a1',   from:'t2_1', until:'t2_2'},
+    {s:'ifn', h:'if',   t:'tool', from:'t2_1', until:'t2_2'},
+    {s:'tool', h:'out', t:'llm_web', from:'t2_1', until:'t2_2'},
+    {s:'llm_web', h:'out', t:'a6', from:'t2_1', until:'t2_2'},
+    {s:'tool', h:'fail', t:'a7', from:'t2_1', until:'t2_2', fail:true},
+    {s:'cls', h:'c1', t:'ag_qa', from:'t2_3'},
+    {s:'ag_qa', h:'out', t:'a1', from:'t2_3'},
+    {s:'cls', h:'c2', t:'llm_iv', from:'t2_1', until:'t2_4'},
+    {s:'llm_iv', h:'out', t:'a2', from:'t2_1', until:'t2_4'},
+    {s:'cls', h:'c2', t:'ag_iv', from:'t2_4'},
+    {s:'ag_iv', h:'out', t:'a2', from:'t2_4'},
+    {s:'cls', h:'c3', t:'llm_quiz', from:'t2_1'},
+    {s:'llm_quiz', h:'out', t:'a3', from:'t2_1'},
+    {s:'cls', h:'c4', t:'llm_grade', from:'t2_1'},
+    {s:'llm_grade', h:'out', t:'a4', from:'t2_1'},
+    {s:'cls', h:'c5', t:'a5', from:'t2_1'},
+  ],
+};
+
+const PROMPTS = {P_NOTE, P_WEB, P_IV, P_QUIZ, P_GRADE, P_AG_QA, P_AG_IV};
+const VERSIONS = {v3:V3, v4:V4};
+
+/* ================= 状态 ================= */
+let CV = V3, IDX = {}, NODE = {}, cur = 0, selId = null, MODE = 'flow';
+const at = id => IDX[id];
+const STEP = () => CV.steps[cur];
+const effOf = i => (i === 0 ? CV.steps.length - 1 : i);
+const boardOf = () => STEP().board || 'main';
+const alive = (n, eff) => at(n.from) <= eff && (!n.until || eff < at(n.until));
+const dying = n => cur > 0 && !!n.until && n.until === STEP().id;
+const shown = (n, eff) => (n.board || 'main') === boardOf() && (alive(n, eff) || dying(n));
+const posOf = (n, eff) => { let p = {x:n.x, y:n.y}; for (const m of (n.moves || [])) if (at(m.from) <= eff) p = m; return p; };
+const ansState = (id, eff) => (CV.ans[id] || []).filter(p => at(p.from) <= eff).pop();
+
+/* ================= 画布 ================= */
+const ICON = {
+  start:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  cls:'<svg viewBox="0 0 24 24"><path d="M4 12h5"/><path d="M9 12l4-6h7"/><path d="M9 12l4 6h7"/><path d="M13 12h7"/></svg>',
+  kb:'<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21a2 2 0 0 1 2-2h13v2"/></svg>',
+  llm:'<svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>',
+  if:'<svg viewBox="0 0 24 24"><path d="M6 3v6a6 6 0 0 0 6 6h6"/><path d="M15 12l3 3-3 3"/><path d="M6 21v-6"/></svg>',
+  tool:'<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
+  ans:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  out:'<svg viewBox="0 0 24 24"><path d="M5 12h12"/><path d="M13 6l6 6-6 6"/></svg>',
+  agent:'<svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><path d="M9.5 13.5h.01M14.5 13.5h.01"/></svg>',
+};
+const COLOR = {start:'var(--c-start)', cls:'var(--c-cls)', kb:'var(--c-kb)', llm:'var(--c-llm)', if:'var(--c-if)', tool:'var(--c-tool)', ans:'var(--c-ans)', out:'var(--c-ans)', agent:'var(--c-agent)'};
+const world = document.getElementById('world'), svg = document.getElementById('edges'), vp = document.getElementById('vp');
+
+function nodeBody(n, eff){
+  switch (n.type) {
+    case 'start':
+      if (n.fieldsFrom && at(n.fieldsFrom) <= eff) return `<div class="nbody"><div class="pill">{x} query <span class="tagc">文本</span></div></div>`;
+      return '';
+    case 'kb': return `<div class="nbody"><div class="pill">📚 我的课程笔记</div></div>`;
+    case 'cls': return `<div class="nbody"><div class="pill">gpt-4.1-mini <span class="tagc">CHAT</span></div>` +
+      CLASSES.map(c => `<div class="row"><b>${c.t}</b><small>${c.d}</small><span class="h out" data-h="${c.id}"></span></div>`).join('') + `</div>`;
+    case 'llm': return `<div class="nbody"><div class="pill">对话模型 <span class="tagc">CHAT</span>${n.mem ? ' <span class="tagc">记忆</span>' : ''}</div></div>`;
+    case 'agent': return `<div class="nbody"><div class="pill">Function Calling <span class="tagc">策略</span></div><div class="nlabel">工具</div><div class="tl">🧩 查课程笔记</div><div class="tl">🔎 Bocha Web Search</div></div>`;
+    case 'if': return `<div class="nbody">
+      <div class="row"><b>IF</b><small>笔记回答/text 包含【笔记未覆盖】</small><span class="h out" data-h="if"></span></div>
+      <div class="row"><b>ELSE</b><small>笔记够用</small><span class="h out" data-h="else"></span></div></div>`;
+    case 'tool': {
+      const fail = n.failFrom && at(n.failFrom) <= eff;
+      return `<div class="nbody"><div class="pill">🔎 博查 · 查询 = query</div>${fail ? `<div class="row fail"><b>失败分支</b><small>博查欠费 / 限流时走这里</small><span class="h out" data-h="fail" style="background:var(--orange)"></span></div>` : ''}</div>`;
+    }
+    case 'ans': {
+      const s = ansState(n.id, eff); if (!s) return '';
+      return `<div class="nbody"><div class="nlabel">回复</div><div class="anstext">${s.ref ? v(s.ref[0], s.ref[1]) : esc(s.place || s.fixed)}</div></div>`;
+    }
+    case 'out': return `<div class="nbody"><div class="nlabel">输出变量</div><div class="anstext">notes ← ${v('知识检索','result')}</div></div>`;
+  }
+  return '';
+}
+
+function renderCanvas(){
+  const eff = effOf(cur), st = STEP();
+  world.querySelectorAll('.node').forEach(e => e.remove());
+  const quiet = cur === 0 || st.quiet;
+  for (const n of CV.nodes) {
+    if (!shown(n, eff)) continue;
+    const el = document.createElement('div');
+    el.className = 'node';
+    if (dying(n)) el.classList.add('del');
+    else if (!quiet && n.from === st.id) el.classList.add('new');
+    else if (!quiet && ((st.chg || []).includes(n.id) || (n.type === 'ans' && (CV.ans[n.id] || []).some(p => p.from === st.id)))) el.classList.add('chg');
+    if (n.id === selId) el.classList.add('sel');
+    const p = dying(n) && n.ghostPos ? n.ghostPos : posOf(n, eff);
+    el.dataset.node = n.id;
+    el.style.left = p.x + 'px'; el.style.top = p.y + 'px'; el.style.width = n.w + 'px';
+    const hasOut = ['start','kb','llm','tool','agent'].includes(n.type);
+    el.innerHTML = `${n.type !== 'start' ? '<span class="h in" data-h="in"></span>' : ''}
+      <div class="nhead"><span class="nicon" style="background:${COLOR[n.type]}">${ICON[n.type]}</span><span class="ntitle">${n.title}</span></div>
+      ${nodeBody(n, eff)}${hasOut ? '<span class="h out" data-h="out"></span>' : ''}`;
+    el.addEventListener('click', ev => { ev.stopPropagation(); selectNode(n.id); });
+    world.appendChild(el);
+  }
+  document.getElementById('board').innerHTML = `当前画布：<b>${CV.boards[boardOf()]}</b>`;
+  drawEdges();
+}
+function offsetIn(el, stop){ let x = 0, y = 0; while (el && el !== stop) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; } return {x, y}; }
+function handlePos(id, h){
+  const el = world.querySelector(`.node[data-node="${id}"]:not(.del) [data-h="${h}"]`);
+  if (!el) return null;
+  const o = offsetIn(el, world);
+  return {x:o.x + el.offsetWidth / 2, y:o.y + el.offsetHeight / 2};
+}
+function drawEdges(){
+  const eff = effOf(cur), st = STEP();
+  let html = '';
+  for (const e of CV.edges) {
+    if (at(e.from) > eff || (e.until && eff >= at(e.until))) continue;
+    const a = handlePos(e.s, e.h), b = handlePos(e.t, 'in');
+    if (!a || !b) continue;
+    const dx = Math.max(50, (b.x - a.x) / 2);
+    const isNew = cur > 0 && !st.quiet && e.from === st.id;
+    const color = e.fail ? '#F79009' : isNew ? '#296DFF' : '#B8C0CC';
+    html += `<path d="M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}" fill="none" stroke="${color}" stroke-width="${isNew ? 2.5 : 1.8}"${e.fail ? ' stroke-dasharray="6 4"' : ''}/>`;
+  }
+  svg.innerHTML = html;
+}
+
+/* ================= 视图 ================= */
+let view = {x:40, y:40, s:.8};
+function applyView(){
+  world.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.s})`;
+  vp.style.backgroundSize = `${20 * view.s}px ${20 * view.s}px`;
+  vp.style.backgroundPosition = `${view.x}px ${view.y}px`;
+  document.getElementById('zl').textContent = Math.round(view.s * 100) + '%';
+}
+function fitIds(ids, maxS = .95){
+  const els = ids.map(id => world.querySelector(`.node[data-node="${id}"]`)).filter(Boolean);
+  if (!els.length) return;
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const el of els) {
+    const x = el.offsetLeft, y = el.offsetTop;
+    x1 = Math.min(x1, x); y1 = Math.min(y1, y);
+    x2 = Math.max(x2, x + el.offsetWidth); y2 = Math.max(y2, y + el.offsetHeight);
+  }
+  const pad = 56, vw = vp.clientWidth, vh = vp.clientHeight, bw = x2 - x1, bh = y2 - y1;
+  let s = Math.min((vw - pad * 2) / bw, (vh - pad * 2) / bh, maxS);
+  s = Math.max(s, .25);
+  view = {s, x:(vw - bw * s) / 2 - x1 * s, y:(vh - bh * s) / 2 - y1 * s};
+  applyView();
+}
+function fitAll(){ fitIds([...world.querySelectorAll('.node')].map(e => e.dataset.node)); }
+function focusStep(){
+  const st = STEP();
+  if (st.fitIds) return fitIds(st.fitIds);
+  if (st.fit === 'all' || !st.focus.length) return fitAll();
+  const near = new Set(st.focus);
+  for (const e of CV.edges) { if (st.focus.includes(e.t)) near.add(e.s); if (st.focus.includes(e.s)) near.add(e.t); }
+  fitIds([...near], .9);
+}
+function zoomAt(f, cx, cy){
+  const s = Math.min(1.6, Math.max(.2, view.s * f));
+  view.x = cx - (cx - view.x) * (s / view.s); view.y = cy - (cy - view.y) * (s / view.s); view.s = s; applyView();
+}
+document.getElementById('zin').onclick = () => zoomAt(1.2, vp.clientWidth / 2, vp.clientHeight / 2);
+document.getElementById('zout').onclick = () => zoomAt(1 / 1.2, vp.clientWidth / 2, vp.clientHeight / 2);
+document.getElementById('zfit').onclick = fitAll;
+document.getElementById('zfocus').onclick = focusStep;
+let drag = null;
+vp.addEventListener('mousedown', e => {
+  if (e.target.closest('.zoom,.legend,.node,.board')) return;
+  drag = {x:e.clientX, y:e.clientY, vx:view.x, vy:view.y}; vp.classList.add('drag'); world.classList.add('nt');
+});
+window.addEventListener('mousemove', e => { if (!drag) return; view.x = drag.vx + e.clientX - drag.x; view.y = drag.vy + e.clientY - drag.y; applyView(); });
+window.addEventListener('mouseup', () => { if (drag) { drag = null; vp.classList.remove('drag'); world.classList.remove('nt'); } });
+vp.addEventListener('wheel', e => {
+  e.preventDefault(); world.classList.add('nt');
+  const r = vp.getBoundingClientRect();
+  if (e.ctrlKey || e.metaKey) zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
+  else { view.x -= e.deltaX; view.y -= e.deltaY; applyView(); }
+  clearTimeout(vp._t); vp._t = setTimeout(() => world.classList.remove('nt'), 150);
+}, {passive:false});
+
+/* ================= 右侧面板 ================= */
+const F = (label, inner, tag) => `<div class="f"><div class="fl">${label}${tag ? `<span class="tag">${tag}</span>` : ''}</div>${inner}</div>`;
+const box = h => `<div class="box">${h}</div>`;
+const sw = on => `<span class="sw${on ? ' on' : ''}"></span>`;
+const pe = (title, text) => `<div class="pe"><div class="peh"><span>${title}</span><button class="cp" data-cid="${reg(text)}">复制</button></div><pre>${hl(esc(text))}</pre></div>`;
+const outs = list => F('输出变量', list.map(([k, t, d]) => `<div class="outv"><b>${k}</b><span>${t}</span>${d ? `<span>· ${d}</span>` : ''}</div>`).join(''));
+const DESC = {
+  start:'流程的起点。Chatflow 里，用户每发一句话，流程就从这里走一遍。',
+  w_start:'Workflow 的起点：要什么输入，就自己加字段。',
+  kb:'每句话先查一次笔记，结果给后面的 LLM 当上下文。',
+  w_kb:'按 query 查「我的课程笔记」。',
+  w_out:'把检索结果交出去。发布成工具后，这就是工具的返回值。',
+  cls:'按意思分诊：5 个分类 = 5 个出口。',
+  llm_note:'笔记够就回答；不够只输出暗号【笔记未覆盖】。',
+  ifn:'认暗号：有暗号走 IF 去联网，没有走 ELSE 直接回复。',
+  tool:'只有笔记不够时才会走到这里。',
+  llm_web:'根据搜索结果回答，全部标【联网补充】。',
+  llm_iv:'围绕知识点出 3 道面试题 + 话术 + 追问。',
+  llm_quiz:'出 5 道题，只给题目，作答格式写死。',
+  llm_grade:'开记忆，看得到上一轮的题，逐题评分。',
+  ag_qa:'自己决定：查几次笔记、要不要联网、要不要查证纠错。',
+  ag_iv:'自己决定：拆成哪几个知识点去查、要不要搜真实面经。',
+};
+
+function panelFor(n, eff){
+  let b = '';
+  if (n.type === 'start') {
+    if (n.board === 'tool') {
+      const has = at(n.fieldsFrom) <= eff;
+      b += F('输入字段', has ? `<div class="kbitem">{x} <b>query</b> <span class="muted">· 文本 · 显示名称「要查的问题」· 必填</span></div>` : `<div class="muted">还没有字段（下一步加）</div>`);
+    } else {
+      b += F('输入字段', `<div class="muted">不用加。Chatflow 自带用户说的这句话。</div>`);
+      b += F('系统变量', `<div class="outv">${v('', 'query')}<span>String · 用户这句话</span></div><div class="outv">${v('', 'files')}<span>Array[File] · 用户上传的文件</span></div>`);
+    }
+  }
+  if (n.type === 'kb') {
+    b += F('查询文本', box(Q));
+    b += F('知识库', `<div class="kbitem">📚 我的课程笔记</div>`);
+    b += F('检索设置', box('默认，不用改'));
+    if (n.v4note) b += F('V4 里', `<div class="note">只有「出题」「评分」还在用它的 result；两个 Agent 用自己的工具查笔记。</div>`);
+    b += outs([['result', 'Array[Object]', '检索到的笔记分段']]);
+  }
+  if (n.type === 'out') {
+    b += F('输出变量', `<div class="cond"><div class="ifl">notes</div><div class="cr">${v('知识检索','result')}</div></div><div class="note">别用 text / files / json 当名字，这三个被工具保留了。</div>`);
+  }
+  if (n.type === 'cls') {
+    b += F('输入变量', box(Q));
+    b += F('模型', box('选快、便宜的对话模型（如 gpt-4.1-mini）'));
+    b += F('分类（5 个）', CLASSES.map(c => `<div class="cc"><div class="cct"><b>${c.t}</b><button class="cp" data-cid="${reg(c.d)}">复制描述</button></div><div class="ccd">${c.d}</div></div>`).join('') +
+      `<div class="note">小标题双击「分类 N」改名；描述粘贴到下面的编辑框。</div>`);
+    b += F('高级设置 · 指令', pe('指令', P_CLS));
+    b += F('记忆', `<div>${sw(true)}有这个开关就打开</div>`, '待实测');
+    b += outs([['class_name', 'String', '模型选中的分类']]);
+  }
+  if (n.type === 'llm') {
+    b += F('模型', box('你自己 API Key 的对话模型'));
+    b += F('上下文', box(n.ctx ? v('查笔记', 'result') : '<span class="muted">不用设</span>'));
+    b += F('提示词', pe('SYSTEM', PROMPTS[n.prompt]) + (n.ctx ? `<div class="note">粘贴后删掉黄色那一行，在原位置按 <kbd>/</kbd> 选「上下文」。</div>` : ''));
+    if (n.web) b += F('USER', pe('USER', P_WEB_USER) + `<div class="note">粘贴后，用 <kbd>/</kbd> 把两处黄字换成对应变量。</div>`);
+    else if (n.mem) b += F('USER', box(Q) + `<div class="note">打开记忆后若已自动带上本轮问题，就不要再手动加。</div>`, '待实测');
+    else b += F('USER', box(Q) + `<div class="note">点「添加消息」新增一条 USER，按 <kbd>/</kbd> 选择。</div>`);
+    b += F('记忆', `<div>${sw(!!n.mem)}${n.mem ? '<b>打开</b>，窗口保持默认' : '关'}</div>`);
+    b += outs([['text', 'String', '模型的回答']]);
+  }
+  if (n.type === 'agent') {
+    b += F('Agent 策略', box('Function Calling（函数调用）') + `<div class="note">列表是空的：${ui('插件')} → 市场搜「Agent 策略」，装 Dify 官方的那个。</div>`, '待实测');
+    b += F('模型', box('支持工具调用的模型（Function Calling）'));
+    b += F('工具列表', `<div class="kbitem">🧩 查课程笔记 <span class="muted">· 工作流工具 · search_course_notes</span></div><div class="kbitem">🔎 Bocha Web Search <span class="muted">· 插件</span></div><div class="note">点 ${ui('+')} 添加：「查课程笔记」在「工作流」分类里。</div>`);
+    b += F('指令', pe('指令', PROMPTS[n.prompt]));
+    b += F('查询', box(Q));
+    b += F('最大迭代次数', box('5'));
+    b += F('记忆', `<div>${sw(false)}关</div>`);
+    b += outs([['text', 'String', 'Agent 的最终回答']]);
+  }
+  if (n.type === 'if') {
+    b += F('条件', `<div class="cond"><div class="ifl">IF</div><div class="cr">${v('笔记回答', 'text')}<span class="op">包含</span><span class="val">【笔记未覆盖】</span></div></div>
+      <div class="cond"><div class="ifl">ELSE</div><div class="cr"><span class="muted">其余情况 → 连到「直接回复」</span></div></div>
+      <div class="note">用「包含」，不用「是」。</div>`);
+  }
+  if (n.type === 'tool') {
+    const fail = n.failFrom && at(n.failFrom) <= eff;
+    b += F('认证', box('选择已有凭证，或填博查 API Key'));
+    b += F('输入变量 · 查询', box(Q), '参数名待实测');
+    b += F('其他参数', box('默认'));
+    b += F('异常处理', box(fail ? '<b>失败分支</b>（节点上出现橙色出口 → 接直接回复 7）' : '无（3.7 步再改）'));
+    b += F('失败时重试', `<div>${sw(fail)}${fail ? '打开，1–2 次' : '关'}</div>`);
+    b += outs([['text', 'String', '搜索结果'], ['files', 'Array[File]'], ['json', 'Array[Object]']]);
+  }
+  if (n.type === 'ans') {
+    const s = ansState(n.id, eff);
+    if (s && s.ref) b += F('回复', box(v(s.ref[0], s.ref[1])) + `<div class="note">删掉原来的内容，按 <kbd>/</kbd> 选这个变量。</div>`);
+    else if (s && s.place) b += F('回复', pe('占位文字（只为测分流）', s.place));
+    else if (s) b += F('回复', pe('写死的回复（不调模型）', s.fixed));
+  }
+  return `<div class="ph"><div class="phr"><span class="nicon" style="background:${COLOR[n.type]}">${ICON[n.type]}</span><span class="pt">${n.title}</span></div>
+    <div class="pdesc">${DESC[n.id] || (n.type === 'ans' ? '把内容回复给用户。Chatflow 的终点。' : '')}</div>
+    <div class="tabs"><span class="on">设置</span><span>上次运行</span></div></div><div class="pb">${b}</div>`;
+}
+
+function panelSpecial(kind){
+  if (kind === 'features') return `<div class="ph"><div class="phr"><span class="pt">功能</span></div><div class="pdesc">右上「功能」里打开</div></div><div class="pb">
+    ${F('对话开场白', `<div>${sw(true)}打开</div>` + pe('开场白', T_OPEN))}
+    ${F('开场问题', cb('给我讲讲 System Prompt') + cb('Agent 相关的面试题有哪些') + cb('用提示词工程模块考考我'))}
+    ${F('引用和归属', `<div>${sw(true)}打开</div><div class="note">用到笔记的回答会显示编号引用，可点开原文分段。</div>`)}</div>`;
+  if (kind === 'publishTool') return `<div class="ph"><div class="phr"><span class="nicon" style="background:var(--c-tool)">${ICON.tool}</span><span class="pt">发布为工具</span></div><div class="pdesc">发布 → 发布为工具，弹窗里按这里填</div></div><div class="pb">
+    ${F('名称', cb('查课程笔记'))}
+    ${F('工具调用名称', cb('search_course_notes') + `<div class="note">给模型看的名字，只能英文、数字、下划线。两个 Agent 的指令里用的就是它。</div>`)}
+    ${F('描述', pe('描述', TOOL_DESC) + `<div class="note">Agent 靠这段话判断「什么时候该调我」。</div>`)}
+    ${F('输入参数 · query', `<div class="kbitem">{x} <b>query</b> <span class="muted">· 填写方式：由 LLM 填入</span></div>` + pe('参数描述', TOOL_PARAM))}
+    ${F('标签', box('<span class="muted">可不填</span>'))}
+    <div class="note">弹窗的字段名以实际界面为准（待实测）。</div></div>`;
+  return `<div class="empty">这一步不用配置节点。<br>点画布上任意节点，可以回看它的配置。</div>`;
+}
+function renderPanel(){
+  const p = document.getElementById('panel'), st = STEP(), eff = effOf(cur);
+  if (st.panel) p.innerHTML = panelSpecial(st.panel);
+  else if (selId && NODE[selId] && shown(NODE[selId], eff)) p.innerHTML = panelFor(NODE[selId], eff);
+  else p.innerHTML = `<div class="empty">点画布上任意节点，这里显示它的完整配置。</div>`;
+  p.scrollTop = 0;
+}
+function selectNode(id){
+  selId = id;
+  world.querySelectorAll('.node').forEach(e => e.classList.toggle('sel', e.dataset.node === id));
+  const p = document.getElementById('panel');
+  p.innerHTML = panelFor(NODE[id], effOf(cur)); p.scrollTop = 0;
+}
+
+/* ================= 步骤栏 / 说明卡 ================= */
+function renderSteps(){
+  const nav = document.getElementById('steps');
+  let html = '', last = '';
+  CV.steps.forEach((s, i) => {
+    if (s.r !== last) { html += `<div class="round">${s.r}</div>`; last = s.r; }
+    html += `<button class="step${i === cur ? ' on' : ''}${i < cur && i > 0 ? ' done' : ''}" data-i="${i}"><span class="no">${s.no}</span><span>${s.t}</span></button>`;
+  });
+  nav.innerHTML = html;
+  nav.querySelectorAll('.step').forEach(b => b.onclick = () => go(+b.dataset.i));
+  const on = nav.querySelector('.step.on'); if (on) on.scrollIntoView({block:'nearest'});
+}
+function renderGuide(){
+  const s = STEP();
+  let h = `<div class="gh"><span class="gno">${s.no === '0' ? '总览' : s.no}</span><h2>${s.t}</h2><span class="gr">${s.r}</span></div><ol>${s.a.map(x => `<li>${x}</li>`).join('')}</ol>`;
+  if (s.warn) h += `<div class="call warn"><b class="k">注意</b>${s.warn}</div>`;
+  if (s.tip) h += `<div class="call tip"><b class="k">教学点</b>${s.tip}</div>`;
+  if (s.check) h += `<div class="call check"><b class="k">检查点</b>${s.check}</div>`;
+  if (s.egg) h += `<div class="call egg">🥚 ${s.egg}</div>`;
+  const g = document.getElementById('guide'); g.innerHTML = h; g.scrollTop = 0;
+  const N = CV.steps.length - 1;
+  document.getElementById('prog').textContent = cur === 0 ? `共 ${N} 步` : `第 ${cur} / ${N} 步`;
+  document.getElementById('prev').disabled = cur === 0;
+  document.getElementById('next').disabled = cur === N;
+  document.getElementById('apptitle').textContent = CV.title;
+  markSeg();
+}
+function markSeg(){ document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', MODE === 'nodes' ? b.dataset.v === 'nodes' : b.dataset.v === CV.id)); }
+function save(){ try { localStorage.setItem('w2d3-manual', JSON.stringify({m:MODE, v:CV.id, s:STEP().id, n:NSTATE.cur})); } catch (e) {} }
+function go(i){
+  cur = Math.max(0, Math.min(CV.steps.length - 1, i));
+  const s = STEP();
+  selId = s.sel || s.focus[0] || null;
+  save(); renderSteps(); renderGuide(); renderCanvas(); renderPanel();
+  requestAnimationFrame(focusStep);
+}
+function setVersion(id, stepId){
+  CV = VERSIONS[id] || V3;
+  IDX = Object.fromEntries(CV.steps.map((s, i) => [s.id, i]));
+  NODE = Object.fromEntries(CV.nodes.map(n => [n.id, n]));
+  go(stepId && stepId in IDX ? IDX[stepId] : 0);
+}
+document.getElementById('prev').onclick = () => MODE === 'nodes' ? nodeStep(-1) : go(cur - 1);
+document.getElementById('next').onclick = () => MODE === 'nodes' ? nodeStep(1) : go(cur + 1);
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === 'nodes') return showNodes();
+  const was = MODE === 'nodes'; showFlows();
+  if (b.dataset.v !== CV.id) setVersion(b.dataset.v); else if (was) go(cur);
+});
+
+/* ================= 彩蛋 ================= */
+const eggEl = document.getElementById('egg');
+const openEgg = () => eggEl.classList.add('show');
+const closeEgg = () => eggEl.classList.remove('show');
+let taps = 0, tapT;
+document.getElementById('appicon').addEventListener('click', () => {
+  taps++; clearTimeout(tapT); tapT = setTimeout(() => taps = 0, 700);
+  if (taps >= 3) { taps = 0; openEgg(); }
+});
+document.getElementById('eggclose').onclick = closeEgg;
+eggEl.addEventListener('click', e => { if (e.target === eggEl) closeEgg(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') return closeEgg();
+  if (e.target.closest('input,textarea') || eggEl.classList.contains('show')) return;
+  if (e.key === 'ArrowRight') MODE === 'nodes' ? nodeStep(1) : go(cur + 1);
+  if (e.key === 'ArrowLeft') MODE === 'nodes' ? nodeStep(-1) : go(cur - 1);
+});
+
+/* ================= 复制 ================= */
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1200); }
+document.addEventListener('click', async e => {
+  const b = e.target.closest('.cp'); if (!b) return;
+  e.stopPropagation();
+  const text = COPY[+b.dataset.cid];
+  try { await navigator.clipboard.writeText(text); }
+  catch (err) { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e2) {} ta.remove(); }
+  b.classList.add('ok'); const old = b.textContent; b.textContent = '已复制';
+  setTimeout(() => { b.classList.remove('ok'); b.textContent = old; }, 1200);
+  toast('已复制，去 Dify 里粘贴');
+});
+
+window.addEventListener('resize', () => requestAnimationFrame(MODE === 'nodes' ? dFit : focusStep));
+
+/* 启动代码在「节点初识」脚本末尾 */
+</script>
+<script>
+/* ================= 节点初识 ================= */
+Object.assign(ICON, {
+  trigger:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  param:'<svg viewBox="0 0 24 24"><path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/></svg>',
+  iter:'<svg viewBox="0 0 24 24"><path d="M4 6h10M4 11h10M4 16h6"/><path d="M17 13l3 3-3 3"/><path d="M20 16h-6"/></svg>',
+  loop:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4h-4"/></svg>',
+  agg:'<svg viewBox="0 0 24 24"><path d="M4 6h5l5 6"/><path d="M4 18h5l5-6h6"/><path d="M17 9l3 3-3 3"/></svg>',
+  code:'<svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/></svg>',
+  tmpl:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+  doc:'<svg viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>',
+  list:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg>',
+  assign:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  http:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/></svg>',
+  human:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6"/><path d="M14 17l2.5 2.5L21 15"/></svg>',
+});
+Object.assign(COLOR, {trigger:'#2970FF', param:'#16B364', iter:'#06AED4', loop:'#06AED4', agg:'#2E90FA', code:'#2E90FA', tmpl:'#2E90FA', doc:'#2E90FA', list:'#2E90FA', assign:'#2E90FA', http:'#7A5AF8', human:'#EE46BC'});
+
+const PL = t => `<div class="pill">${t}</div>`;
+const TX = t => `<div class="anstext">${t}</div>`;
+const LB = t => `<div class="nlabel">${t}</div>`;
+const RW = (h, b, s) => `<div class="row"><b>${b}</b>${s ? `<small>${s}</small>` : ''}<span class="h out" data-h="${h}"></span></div>`;
+const RH = t => `<div class="rh">${t}</div>`;
+const SIM = '<span class="sim">示意</span>';
+const MU = t => `<div class="muted" style="margin-top:6px">${t}</div>`;
+const PRE = t => `<pre>${esc(t)}</pre>`;
+const bub = (w, t) => `<div class="bubble ${w}">${esc(t)}</div>`;
+const fr = (ran, out, extra) => Object.assign({ran, out}, extra || {});
+const CT = {
+  text:(k, l, val) => `<label class="ci"><span>${l}</span><input data-k="${k}" value="${esc(String(val))}"></label>`,
+  num:(k, l, val) => `<label class="ci"><span>${l}</span><input type="number" data-k="${k}" value="${val}"></label>`,
+  area:(k, l, val, rows) => `<label class="ci wide"><span>${l}</span><textarea data-k="${k}" rows="${rows || 4}">${esc(val)}</textarea></label>`,
+  sel:(k, l, opts, val) => `<label class="ci"><span>${l}</span><select data-k="${k}">${opts.map(o => `<option${o === val ? ' selected' : ''}>${o}</option>`).join('')}</select></label>`,
+  chk:(k, l, on) => `<label class="ck"><input type="checkbox" data-k="${k}"${on ? ' checked' : ''}>${l}</label>`,
+  chips:(k, opts, l, fill) => `<div class="ci wide"><span>${l}</span><div class="chips" data-k="${k}"${fill ? ` data-fill="${fill}"` : ''}>${opts.map((o, i) => `<button class="chip${i === 0 ? ' on' : ''}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`,
+  btn:(act, l, primary) => `<button class="btn${primary ? ' primary' : ''}" data-act="${act}">${l}</button>`,
+  box:(l, html) => `<div class="ci wide"><span>${l}</span>${html}</div>`,
+};
+
+const NGROUPS = ['开始', '结束', 'AI', '问题理解', '逻辑', '转换', '工具', '人工'];
+
+const NDOCS = [
+/* ---------- 开始 ---------- */
+{id:'start', type:'start', name:'用户输入', group:'开始', used:{v:'v3', s:'s1_1', label:'V3 · 1.1 创建 Chatflow'},
+ one:'流程的起点：规定用户要交什么材料。', like:'像挂号单上要你填的那几栏。',
+ how:'Workflow 里自己加字段（文本、段落、下拉、数字、文件……），每个字段就是一个变量；Chatflow 自带用户那句话 <code>query</code>，一般不用加。',
+ scenes:['简历优化：上传简历 + 粘贴目标 JD', '活动报名：姓名、手机号、下拉选场次', 'Chatflow：用户每发一句话，就是一次输入'],
+ demo:{title:'简历建议（Workflow）',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:30, w:210, start:true, body:PL('{x} job · 文本') + PL('{x} years · 下拉') + PL('{x} resume · 文件')},
+    {id:'l', type:'llm', title:'LLM · 简历建议', x:290, y:60, w:200, body:PL('对话模型')},
+    {id:'o', type:'out', title:'输出', x:560, y:60, w:170, end:true, body:TX('advice')}],
+  edges:[{s:'s', t:'l'}, {s:'l', t:'o'}],
+  ctl:() => CT.text('job', '目标岗位', 'AI 产品经理') + CT.sel('years', '工作年限', ['应届', '1–3 年', '3–5 年'], '1–3 年') + CT.sel('resume', '简历', ['我的简历.pdf', '不上传'], '我的简历.pdf') + CT.btn('run', '运行', true),
+  run:(x, act) => {
+    if (act === 'init') return [fr([], RH('填好上面的表，点「运行」') + MU('「用户输入」里定义了 3 个字段，发布后就是一张表单。'))];
+    const out = RH('用户填的内容，变成了 3 个变量（后面的节点按 / 就能引用）') +
+      `<div class="outv">${v('用户输入', 'job')}<span>= "${esc(x.job)}"</span></div><div class="outv">${v('用户输入', 'years')}<span>= "${x.years}"</span></div><div class="outv">${v('用户输入', 'resume')}<span>= ${x.resume === '不上传' ? '空（没上传）' : '我的简历.pdf（文件）'}</span></div>`;
+    return [fr(['s'], out), fr(['s', 'l'], out), fr(['s', 'l', 'o'], out)];
+  }}},
+
+{id:'trigger', type:'trigger', name:'触发器', group:'开始', badge:'Workflow 专属', bcls:'wf',
+ one:'不用人点：到点了、有事了，它自己跑。', like:'像闹钟；也像快递到了自动发短信。',
+ how:'和「用户输入」二选一。三种：<b>定时</b>（每天 9:00）、<b>Webhook</b>（别的系统发请求过来就跑）、<b>集成事件</b>（比如某个应用里来了新消息）。',
+ scenes:['每天 9 点自动搜 AI 资讯，写成早报', '表单有新提交，自动整理后发到群里', '每周一自动汇总上周数据'],
+ demo:{title:'AI 早报（每天 9 点自动跑）',
+  nodes:[
+    {id:'tr', type:'trigger', title:'定时触发器', x:0, y:40, w:190, start:true, body:PL('每天 09:00')},
+    {id:'t', type:'tool', title:'博查搜索', x:260, y:40, w:180, body:PL('查：今日 AI 新闻')},
+    {id:'l', type:'llm', title:'LLM · 写早报', x:510, y:40, w:180, body:PL('对话模型')},
+    {id:'o', type:'out', title:'输出', x:760, y:40, w:150, end:true}],
+  edges:[{s:'tr', t:'t'}, {s:'t', t:'l'}, {s:'l', t:'o'}],
+  ctl:() => CT.btn('ff', '⏩ 时间快进', true) + '<span class="muted" style="padding-bottom:6px">没有人点「运行」，看它自己动</span>',
+  run:(x, act) => {
+    const clock = t => ({tr:PL('每天 09:00') + TX('现在 ' + t)});
+    if (act === 'init') return [fr([], RH('现在 08:58') + MU('没人碰它。点「时间快进」，看到 09:00 会发生什么。'), {body:clock('08:58')})];
+    const done = RH('09:00 自动跑完一次，全程没人点') + PRE('【AI 早报 · 示意】\n① ……（搜到的第 1 条资讯摘要）\n② ……\n③ ……');
+    return [fr([], RH('08:59 还没到点，流程不动'), {body:clock('08:59')}),
+      fr(['tr'], RH('⏰ 09:00 到了，自动开始'), {body:clock('09:00')}),
+      fr(['tr', 't'], RH('正在搜资讯……'), {body:clock('09:00')}),
+      fr(['tr', 't', 'l'], RH('正在写早报……'), {body:clock('09:00')}),
+      fr(['tr', 't', 'l', 'o'], done, {body:clock('09:00')})];
+  }}},
+
+/* ---------- 结束 ---------- */
+{id:'answer', type:'ans', name:'直接回复', group:'结束', badge:'Chatflow 专属', bcls:'cf', used:{v:'v3', s:'s1_3', label:'V3 · 1.3 五个出口'},
+ one:'Chatflow 的终点：把话回给用户。', like:'像客服开口回答你。',
+ how:'写固定文字，或按 <kbd>/</kbd> 插入前面节点的变量。可以放好几个：不同分支各回各的，也能先回一句「收到」再继续干活。',
+ scenes:['「其他」分支写死一句能力说明，0 token', '长任务先回「收到，正在查」', '把 LLM 的回答原样回给用户'],
+ demo:{title:'写死的回复（Chatflow）', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:190, start:true, body:PL('{x} query')},
+    {id:'a', type:'ans', title:'直接回复', x:280, y:30, w:280, end:true, body:TX('收到！你想了解「{x} query」，我去查一下～')}],
+  edges:[{s:'s', t:'a'}],
+  ctl:() => CT.text('q', '用户说', '什么是 RAG'),
+  run:x => [fr(['s', 'a'], `<div class="chat">${bub('u', x.q || '（空）')}${bub('b', `收到！你想了解「${x.q}」，我去查一下～`)}</div>` + MU('这句回复是写死的模板 + 一个变量，没调模型：0 token，每次都一样。'))]}},
+
+{id:'output', type:'out', name:'输出', group:'结束', badge:'Workflow 专属', bcls:'wf', used:{v:'v4', s:'t1_4', label:'V4 · 1.4 输出 notes'},
+ one:'Workflow 的终点：把结果交出去。', like:'像窗口递出做好的成品。',
+ how:'加输出变量：起个名字，选上游的值。名字就是 API 返回里的键；发布成工具后，就是工具的返回值。别用 text / files / json 当名字。',
+ scenes:['给调用 API 的程序返回结果', '发布成工具后，就是工具交回去的东西', 'Web 应用批量运行时，每行一个结果'],
+ demo:{title:'查课程笔记（Workflow）',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:180, start:true, body:PL('{x} query')},
+    {id:'k', type:'kb', title:'知识检索', x:250, y:40, w:190, body:PL('📚 我的课程笔记')},
+    {id:'o', type:'out', title:'输出', x:510, y:40, w:210, end:true, body:TX('notes ← 知识检索 / result')}],
+  edges:[{s:'s', t:'k'}, {s:'k', t:'o'}],
+  ctl:() => CT.text('q', '要查的问题', 'System Prompt 和 User Prompt 的区别') + CT.chk('no', '去掉输出节点试试', false) + CT.btn('run', '运行', true),
+  run:(x, act) => {
+    const hide = x.no ? ['o'] : [];
+    if (act === 'init') return [fr([], RH('点「运行」，看调用方拿到什么'), {hide})];
+    if (x.no) return [fr(['s'], '', {hide}), fr(['s', 'k'], RH('流程照样跑完了') + '但调用方拿到的是：' + PRE('{ }') + MU('空的——没有输出节点，结果交不出去。'), {hide})];
+    const res = RH('调用方 / Agent 拿到的结果' + SIM) + PRE('{\n  "notes": [\n    {"content": "System Prompt：写给模型的长期设定……", "score": 0.86},\n    {"content": "User Prompt：用户每次的具体提问……", "score": 0.79}\n  ]\n}') + MU('键名 notes，就是你在输出节点里起的名字。');
+    return [fr(['s'], ''), fr(['s', 'k'], ''), fr(['s', 'k', 'o'], res)];
+  }}},
+
+/* ---------- AI ---------- */
+{id:'llm', type:'llm', name:'LLM', group:'AI', used:{v:'v3', s:'s2_2', label:'V3 · 2.2 出面试题'},
+ one:'让模型干需要「理解」的活。', like:'像请秘书写东西：你提要求，它交稿。',
+ how:'选模型 → SYSTEM 写要求 → USER 按 <kbd>/</kbd> 放输入。要用资料，就把知识检索的 result 接到「上下文」。',
+ scenes:['把会议纪要总结成 3 条', '把 JD 改写成能力清单', '按笔记出测试题'],
+ demo:{title:'同一段输入，换个要求', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:170, start:true, body:PL('{x} query')},
+    {id:'l', type:'llm', title:'LLM', x:240, y:30, w:220, body:PL('对话模型')},
+    {id:'a', type:'ans', title:'直接回复', x:530, y:40, w:170, end:true}],
+  edges:[{s:'s', t:'l'}, {s:'l', t:'a'}],
+  ctl:() => CT.box('用户发来的会议纪要', '<div class="box">本周评审了笔记助手 V3。结论：分诊准确率达标；联网搜索偶尔超时，需要加失败分支；下周上线前补一轮 20 条测试，并把开场白改得更短。</div>') + CT.chips('task', ['总结成 3 条', '改写成口语', '提 3 个追问'], 'SYSTEM 里写的要求'),
+  run:x => {
+    const R = {
+      '总结成 3 条':'1. V3 分诊准确率达标\n2. 联网搜索偶发超时，要加失败分支\n3. 上线前补 20 条测试，开场白改短',
+      '改写成口语':'简单说一下：V3 分诊没问题，就是联网有时候会卡，我们加个兜底。上线前再测 20 条，开场白也改短点。',
+      '提 3 个追问':'1. 超时多久算失败？\n2. 20 条测试覆盖哪几种模式？\n3. 开场白改短后，要不要再做一次对比？'};
+    return [fr(['s', 'l', 'a'], RH('SYSTEM：' + x.task + SIM) + PRE(R[x.task]) + MU('输入没变，只改了一句要求，输出就完全不同——LLM 节点的活，全靠提示词。'), {body:{l:PL('要求：' + x.task)}})];
+  }}},
+
+{id:'kb', type:'kb', name:'知识检索', group:'AI', used:{v:'v3', s:'s2_1', label:'V3 · 2.1 查笔记'},
+ one:'去资料库里，翻出和问题相关的几段。', like:'像考前翻笔记，找到讲这个知识点的那几页。',
+ how:'查询文本接用户问题 → 选知识库 → 输出 result（几段笔记），接到 LLM 的「上下文」里用。',
+ scenes:['课程笔记助手：先查笔记再回答', '客服：查 FAQ 和售后政策', 'HR 助手：查员工手册'],
+ demo:{title:'查课程笔记', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:170, start:true, body:PL('{x} query')},
+    {id:'k', type:'kb', title:'知识检索', x:240, y:40, w:200, body:PL('📚 我的课程笔记')},
+    {id:'l', type:'llm', title:'LLM · 笔记回答', x:510, y:40, w:190, end:true, body:PL('上下文 = result')}],
+  edges:[{s:'s', t:'k'}, {s:'k', t:'l'}],
+  ctl:() => CT.chips('q', ['System Prompt 和 User Prompt 的区别', '什么是 MCP', '今天天气怎么样'], '用户问'),
+  run:x => {
+    const R = {
+      'System Prompt 和 User Prompt 的区别':[[0.86, 'W1D3 · System Prompt：写给模型的长期设定，定义角色、规则和输出格式……'], [0.79, 'W1D3 · User Prompt：用户每次具体的提问……'], [0.52, 'W2D1 · 指令权威层级：System 高于 User……']],
+      '什么是 MCP':[[0.83, 'W2D1 · MCP：让 AI 用统一的方式接入外部工具和数据……'], [0.66, 'W2D1 · API、Tool、MCP 的包含关系……'], [0.41, 'W2D2 · 构成四样：工具……']],
+      '今天天气怎么样':[[0.21, 'W2D2 · Agent 的运行循环……'], [0.18, 'W1D2 · 人工智能发展史……'], [0.15, 'W2D1 · API 是什么……']]};
+    const segs = R[x.q].map(([s, t]) => `<div>${esc(t)}</div><div class="bar"><i style="width:${s * 100}%"></i></div><div class="muted" style="margin:-4px 0 6px">相关度 ${s}</div>`).join('');
+    const tip = x.q === '今天天气怎么样' ? MU('分数都很低，说明笔记里其实没有。检索总会返回点什么，所以 V3 让 LLM 判断「够不够」。') : MU('这 3 段就是 result，接到 LLM 的「上下文」里，它就照着笔记回答。');
+    return [fr(['s', 'k', 'l'], RH('检索到的 3 段（result）' + SIM) + segs + tip)];
+  }}},
+
+{id:'agent', type:'agent', name:'Agent', group:'AI', used:{v:'v4', s:'t2_3', label:'V4 · 2.3 答疑 Agent'},
+ one:'一个会自己决定用什么工具、用几次的员工。', like:'像派实习生去办事：给目标和工具，他自己想办法。',
+ how:'选策略和模型 → 挂上工具 → 写指令 → 查询接用户问题 → 设最多想几轮。调哪个工具、调几次，它自己定。',
+ scenes:['答疑：自己决定查笔记还是联网', '调研：自己搜几轮再汇总', '客服：自己查订单、查物流再回答'],
+ demo:{title:'答疑 Agent：三个问题，三种走法', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:50, w:170, start:true, body:PL('{x} query')},
+    {id:'g', type:'agent', title:'答疑 Agent', x:240, y:20, w:220, body:PL('Function Calling') + '<div class="tl">🧩 查课程笔记</div><div class="tl">🔎 Bocha Web Search</div>'},
+    {id:'a', type:'ans', title:'直接回复', x:530, y:50, w:170, end:true}],
+  edges:[{s:'s', t:'g'}, {s:'g', t:'a'}],
+  ctl:() => CT.chips('q', ['System Prompt 是什么', '什么是 A2A 协议', 'MCP 是谁提出的'], '用户问'),
+  run:x => {
+    const S = {
+      'System Prompt 是什么':[
+        '第 1 轮 · 调用 查课程笔记（「System Prompt」）→ 找到 3 段笔记', '判断：笔记够了，不联网',
+        '【来自笔记】System Prompt 是写给模型的长期设定，规定它的角色、规则和输出格式……'],
+      '什么是 A2A 协议':[
+        '第 1 轮 · 调用 查课程笔记（「A2A 协议」）→ 没找到相关笔记', '第 2 轮 · 调用 Bocha Web Search（「A2A 协议 是什么」）→ 3 条结果',
+        '【联网补充】A2A（Agent2Agent）是 Google 2025 年 4 月提出的开放协议，让不同厂商的 Agent 能互相通信、协作……'],
+      'MCP 是谁提出的':[
+        '第 1 轮 · 调用 查课程笔记（「MCP 提出」）→ 笔记写着「MCP 是 OpenAI 提出的」', '判断：和公认说法不一致，要核实',
+        '第 2 轮 · 调用 Bocha Web Search（「MCP 是谁提出的」）→ Anthropic 2024 年 11 月发布',
+        '【笔记可能有误】笔记原文：MCP 是 OpenAI 提出的 → 正确说法：MCP 由 Anthropic 于 2024 年 11 月提出并开源 → 建议改笔记']};
+    const steps = S[x.q], frames = [];
+    for (let i = 1; i <= steps.length; i++) {
+      const last = i === steps.length;
+      const log = steps.slice(0, last ? i - 1 : i).map(t => `<li>${esc(t)}</li>`).join('');
+      frames.push(fr(last ? ['s', 'g', 'a'] : ['s', 'g'], RH('Agent 每一轮在干什么' + SIM) + `<ol>${log}</ol>` + (last ? RH('最终回答') + TX(esc(steps[i - 1])) + MU('同一个 Agent，三个问题走了三种路——这就是「自己决定」。') : '')));
+    }
+    return frames;
+  }}},
+
+/* ---------- 问题理解 ---------- */
+{id:'cls', type:'cls', name:'问题分类器', group:'问题理解', used:{v:'v3', s:'s1_2', label:'V3 · 1.2 分模式'},
+ one:'按「意思」把请求分到不同的路。', like:'像医院导诊台：听你说症状，指你去哪个科。',
+ how:'输入接用户问题 → 写几个分类，每个分类一个出口。分类描述是模型真正读的，要写清边界（「不包括……」）。',
+ scenes:['笔记助手：分成问答、面试题、测试……', '客服：分售前、售后、投诉', '工单：按部门分派'],
+ demo:{title:'耳机店客服分诊', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:110, w:170, start:true, body:PL('{x} query')},
+    {id:'c', type:'cls', title:'问题分类器', x:240, y:40, w:230, branch:true, body:PL('gpt-4.1-mini') + RW('c1', '售前咨询', '问功能、价格') + RW('c2', '售后退换', '坏了、退货、换货') + RW('c3', '其他', '和买东西无关')},
+    {id:'a1', type:'ans', title:'直接回复', x:560, y:0, w:170, end:true, body:TX('介绍产品')},
+    {id:'a2', type:'ans', title:'直接回复 2', x:560, y:120, w:170, end:true, body:TX('办理退换')},
+    {id:'a3', type:'ans', title:'直接回复 3', x:560, y:240, w:170, end:true, body:TX('说明能帮什么')}],
+  edges:[{s:'s', t:'c'}, {s:'c', h:'c1', t:'a1'}, {s:'c', h:'c2', t:'a2'}, {s:'c', h:'c3', t:'a3'}],
+  ctl:() => CT.text('q', '用户说', '这款耳机支持降噪吗') + CT.chips('ex', ['这款耳机支持降噪吗', '收到的耳机左边没声音，能换吗', '你们老板是谁'], '试试这些', 'q'),
+  run:x => {
+    const q = x.q || '';
+    const [id, name] = /坏|退|换|没声音|售后|退款|维修/.test(q) ? ['a2', '售后退换'] : /吗|多少|支持|价格|有没有|续航|颜色|怎么样/.test(q) ? ['a1', '售前咨询'] : ['a3', '其他'];
+    return [fr(['s', 'c', id], `判为：<b>${name}</b>` + SIM + MU('真实情况是模型读「分类描述」按意思判断；这里用关键词模拟。'))];
+  }}},
+
+{id:'param', type:'param', name:'参数提取器', group:'问题理解',
+ one:'从一句话里，抠出几个结构化的字段。', like:'像前台听你说完一段话，替你把表填好。',
+ how:'输入接一段话 → 定义要抽的参数（名字、类型、描述）→ 输出就是这些字段，外加一个「是否成功」。',
+ scenes:['「订周五去上海的票」→ 日期、城市', '从 JD 里抽城市、薪资、年限', '从客户留言里抽订单号、问题类型'],
+ demo:{title:'订高铁：先抽字段，缺了就追问', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:90, w:170, start:true, body:PL('{x} query')},
+    {id:'p', type:'param', title:'参数提取器', x:230, y:50, w:200, body:PL('date · 日期') + PL('city · 目的地') + PL('count · 人数')},
+    {id:'i', type:'if', title:'条件分支', x:490, y:70, w:190, branch:true, body:RW('if', 'IF', '有字段为空') + RW('else', 'ELSE', '都齐了')},
+    {id:'q', type:'ans', title:'直接回复 · 追问', x:750, y:0, w:180, end:true},
+    {id:'h', type:'http', title:'HTTP 请求 · 查余票', x:750, y:150, w:190, end:true}],
+  edges:[{s:'s', t:'p'}, {s:'p', t:'i'}, {s:'i', h:'if', t:'q'}, {s:'i', h:'else', t:'h'}],
+  ctl:() => CT.chips('q', ['帮我订周五下午去上海的高铁，两个人', '下周一早上回北京，就我自己', '想去杭州玩两天'], '用户说'),
+  run:x => {
+    const R = {
+      '帮我订周五下午去上海的高铁，两个人':{date:'周五下午', city:'上海', count:'2'},
+      '下周一早上回北京，就我自己':{date:'下周一早上', city:'北京', count:'1'},
+      '想去杭州玩两天':{date:'', city:'杭州', count:''}}[x.q];
+    const miss = Object.entries(R).filter(([, val]) => !val).map(([k]) => k);
+    const row = (k, n) => `<tr><td><code>${k}</code></td><td>${n}</td><td>${R[k] || '<span class="muted">（没说）</span>'}</td></tr>`;
+    const out = RH('抽出来的字段' + SIM) + `<table class="t"><tr><th>参数</th><th>含义</th><th>值</th></tr>${row('date', '日期')}${row('city', '目的地')}${row('count', '人数')}</table>` +
+      (miss.length ? MU('缺了 ' + miss.join('、') + ' → 走 IF，回一句「哪天出发？几个人？」追问。') : MU('字段齐了 → 走 ELSE，拿着这些字段去调查余票接口。'));
+    return [fr(['s', 'p', 'i', miss.length ? 'q' : 'h'], out)];
+  }}},
+
+/* ---------- 逻辑 ---------- */
+{id:'ifelse', type:'if', name:'条件分支', group:'逻辑', used:{v:'v3', s:'s3_2', label:'V3 · 3.2 笔记够不够'},
+ one:'按「规则」分路：满足条件走这边，不满足走那边。', like:'像地铁闸机：刷卡有效才开门，不管你说什么。',
+ how:'选一个变量 → 选判断方式（包含、等于、为空、大于……）→ 填值。可以加多个 ELIF，从上往下判断，先满足哪个走哪个。',
+ scenes:['报销超过 500 元，转领导审批', '用户没上传文件，就提示先上传', 'V3 里认暗号【笔记未覆盖】'],
+ demo:{title:'报销审批', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:90, w:180, start:true, body:PL('{x} amount · 金额')},
+    {id:'i', type:'if', title:'条件分支', x:240, y:50, w:210, branch:true, body:RW('if', 'IF', 'amount > 5000') + RW('elif', 'ELIF', 'amount > 500') + RW('else', 'ELSE', '其余')},
+    {id:'r1', type:'tmpl', title:'转财务总监', x:530, y:0, w:170, end:true},
+    {id:'r2', type:'tmpl', title:'转领导审批', x:530, y:110, w:170, end:true},
+    {id:'r3', type:'tmpl', title:'自动通过', x:530, y:220, w:170, end:true}],
+  edges:[{s:'s', t:'i'}, {s:'i', h:'if', t:'r1'}, {s:'i', h:'elif', t:'r2'}, {s:'i', h:'else', t:'r3'}],
+  ctl:() => CT.num('amt', '报销金额（元）', 300),
+  run:x => {
+    const n = Number(x.amt) || 0;
+    const [id, br, lab] = n > 5000 ? ['r1', 'IF', '转财务总监'] : n > 500 ? ['r2', 'ELIF', '转领导审批'] : ['r3', 'ELSE', '自动通过'];
+    return [fr(['s', 'i', id], `金额 ${n} 元 → 走 <b>${br}</b>：${lab}` + MU('按规则判断：不调模型、不花 token，同样的输入永远走同一条路。改改金额试试。'))];
+  }}},
+
+{id:'iter', type:'iter', name:'迭代', group:'逻辑',
+ one:'对列表里的每一项，做同样的事。', like:'像老师批一摞作业：每本都按同一个标准批。',
+ how:'输入选一个列表 → 在框里放每一项要做的节点（用 <code>item</code> 取当前这一项）→ 输出是结果列表。可以开并行。',
+ scenes:['批量拆解 5 条 JD', '长文按段落逐段翻译', '一批评论逐条打情绪标签'],
+ demo:{title:'一批评论，逐条打标签',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:50, w:180, start:true, body:PL('{x} comments · 列表')},
+    {id:'it', type:'iter', title:'迭代', x:250, y:20, w:250, body:LB('框里每一项都做：') + PL('LLM · 打情绪标签')},
+    {id:'o', type:'out', title:'输出', x:570, y:50, w:170, end:true, body:TX('tags（列表）')}],
+  edges:[{s:'s', t:'it'}, {s:'it', t:'o'}],
+  ctl:() => CT.area('list', '一批用户评论（一行一条）', '物流很快，包装也好\n用了两天就坏了，要退货\n还行吧，中规中矩\n客服态度特别好，喜欢', 4) + CT.chk('par', '并行模式', false) + CT.btn('run', '运行', true),
+  run:(x, act) => {
+    if (act === 'init') return [fr([], RH('点「运行」，看它一条一条处理'))];
+    const items = (x.list || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const tag = s => /坏|差|慢|退|失望/.test(s) ? '😞 负面' : /好|快|喜欢|满意|棒/.test(s) ? '😊 正面' : '😐 中性';
+    const list = k => `<ol>${items.slice(0, k).map(s => `<li>${esc(s)} → <b>${tag(s)}</b></li>`).join('')}</ol>`;
+    const frames = [];
+    if (x.par) frames.push(fr(['s', 'it'], RH(`并行：${items.length} 项同时处理`), {body:{it:LB(`同时处理 ${items.length} 项`) + PL('LLM · 打情绪标签 ×' + items.length)}}));
+    else items.forEach((s, k) => frames.push(fr(['s', 'it'], RH('处理中……') + list(k + 1), {body:{it:LB(`第 ${k + 1} / ${items.length} 项`) + TX(esc(s)) + PL('→ ' + tag(s))}})));
+    frames.push(fr(['s', 'it', 'o'], RH('输出：结果列表，和输入一一对应' + SIM) + list(items.length) + MU(x.par ? '并行更快，但会同时占用更多模型调用。' : '顺序模式一条接一条；勾上「并行模式」再跑一次对比。')));
+    return frames;
+  }}},
+
+{id:'loop', type:'loop', name:'循环', group:'逻辑',
+ one:'反复做，直到满足条件才停。', like:'像改稿：改到老板满意为止，但最多改 3 遍。',
+ how:'设退出条件（比如分数 ≥ 8）和最多几轮 → 在框里放每一轮要做的事。一定要设最多几轮，防止停不下来。',
+ scenes:['写文案 → 打分 → 不够好就重写', '翻译 → 回译检查 → 不一致就重翻', '接口调失败就重试，直到成功'],
+ demo:{title:'写文案，打分不够就重写',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:50, w:170, start:true, body:PL('{x} topic · 主题')},
+    {id:'lp', type:'loop', title:'循环', x:240, y:20, w:250, body:LB('每一轮：') + PL('LLM · 写一版文案') + PL('LLM · 打分')},
+    {id:'o', type:'out', title:'输出', x:560, y:50, w:170, end:true, body:TX('最终文案')}],
+  edges:[{s:'s', t:'lp'}, {s:'lp', t:'o'}],
+  ctl:() => CT.sel('pass', '及格线（分）', ['7', '8', '9'], '8') + CT.sel('max', '最多几轮', ['2', '3', '5'], '3') + CT.btn('run', '运行', true),
+  run:(x, act) => {
+    if (act === 'init') return [fr([], RH('设好及格线和最多几轮，点「运行」'))];
+    const sc = [6.2, 7.4, 8.3, 8.8, 9.1], pass = Number(x.pass), max = Number(x.max), frames = [];
+    let log = '', r = 0, ok = false;
+    while (r < max && !ok) {
+      const s = sc[r]; r++; ok = s >= pass;
+      log += `<li>第 ${r} 轮：写稿 → 打分 <b>${s}</b> ${ok ? '✅ 达标' : '❌ 没达标'}</li>`;
+      frames.push(fr(['s', 'lp'], RH('循环中……' + SIM) + `<ol>${log}</ol>`, {body:{lp:LB(`第 ${r} 轮`) + PL('写稿 → 打分 ' + s) + PL(ok ? '✅ 达标，退出' : '❌ 再来一轮')}}));
+    }
+    frames.push(fr(['s', 'lp', 'o'], RH('循环结束' + SIM) + `<ol>${log}</ol>` + MU(ok ? `第 ${r} 轮分数达标，停下。` : `到了最多 ${max} 轮还没达标，只能带着最后一版交出去——所以「最多几轮」一定要设。`) + MU('迭代：次数 = 列表长度，事先知道；循环：次数看条件，事先不知道。')));
+    return frames;
+  }}},
+
+/* ---------- 转换 ---------- */
+{id:'code', type:'code', name:'代码执行', group:'转换',
+ one:'有标准答案的计算，交给几行代码。', like:'像计算器：算得准，不会自由发挥。',
+ how:'定义输入变量 → 写一个 main 函数（Python 或 JavaScript）→ 声明输出变量和类型。代码不用自己写，把输入输出描述清楚让 AI 写。',
+ scenes:['按分隔符把一段文字切成列表', '算平均分、总价', '把日期统一成 2026-09-30 这种格式'],
+ demo:{title:'把几条 JD 切成列表',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:180, start:true, body:PL('{x} jd_text · 段落')},
+    {id:'c', type:'code', title:'代码执行', x:250, y:40, w:190, body:PL('Python · main()')},
+    {id:'o', type:'out', title:'输出', x:510, y:40, w:190, end:true, body:TX('jd_list · jd_count')}],
+  edges:[{s:'s', t:'c'}, {s:'c', t:'o'}],
+  ctl:() => CT.area('txt', '几条 JD，中间用 === 隔开', 'AI 产品经理｜北京｜25-40K\n===\nAI 应用产品经理｜上海｜20-35K\n===\n大模型平台产品经理｜杭州｜30-50K', 5) +
+    CT.box('代码（让 AI 写的）', '<pre class="code">def main(jd_text: str) -> dict:\n    parts = [p.strip() for p in jd_text.split("===") if p.strip()]\n    return {"jd_list": parts, "jd_count": len(parts)}</pre>') + CT.btn('run', '运行', true),
+  run:(x, act) => {
+    if (act === 'init') return [fr([], RH('点「运行」，这次是真的在算'))];
+    const parts = (x.txt || '').split('===').map(p => p.trim()).filter(Boolean);
+    const out = RH('输出') + PRE(JSON.stringify({jd_list:parts, jd_count:parts.length}, null, 2)) + MU('切分、计数、算平均分这种「有标准答案」的事交给代码：算得准、不花 token、不会自由发挥。');
+    return [fr(['s'], ''), fr(['s', 'c'], ''), fr(['s', 'c', 'o'], out)];
+  }}},
+
+{id:'tmpl', type:'tmpl', name:'模板转换', group:'转换',
+ one:'按固定格式，把变量拼成一段文字。', like:'像填空式的奖状：格式永远一样，只换名字和名次。',
+ how:'定义变量 → 用 <code>{{ 变量 }}</code> 写模板（Jinja2，还能写 if 判断和 for 循环）→ 输出拼好的文字。',
+ scenes:['报告、成绩单的固定排版', '邮件固定的开头和落款', '把列表拼成 Markdown 表格'],
+ demo:{title:'作业成绩通知', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:30, w:180, start:true, body:PL('{x} name') + PL('{x} score') + PL('{x} comment')},
+    {id:'t', type:'tmpl', title:'模板转换', x:250, y:50, w:180, body:PL('Jinja2')},
+    {id:'o', type:'out', title:'输出', x:500, y:50, w:160, end:true}],
+  edges:[{s:'s', t:'t'}, {s:'t', t:'o'}],
+  ctl:() => CT.text('name', '姓名', '小明') + CT.num('score', '分数', 86) + CT.text('comment', '评语', '分诊设计清楚，提示词还可以更短') +
+    CT.box('模板', '<pre class="code">{{ name }} 同学，本次作业 {{ score }} 分，{% if score >= 60 %}通过{% else %}需要补交{% endif %}。\n老师评语：{{ comment }}\n—— AI 产品经理训练营</pre>'),
+  run:x => {
+    const s = Number(x.score) || 0;
+    const txt = `${x.name} 同学，本次作业 ${s} 分，${s >= 60 ? '通过' : '需要补交'}。\n老师评语：${x.comment}\n—— AI 产品经理训练营`;
+    return [fr(['s', 't', 'o'], RH('渲染结果') + PRE(txt) + MU('格式每次都一样，只换变量——这件事不需要模型。把分数改成 59 试试。'))];
+  }}},
+
+{id:'agg', type:'agg', name:'变量聚合器', group:'转换',
+ one:'几条「只会走一条」的路，把结果收成一个。', like:'像机场：不管走哪个安检口，最后都到同一个登机口。',
+ how:'把几条分支里同类型的输出都加进来 → 下游只引用它的 output 一个变量。只管「每次只走一条」的分支。',
+ scenes:['V3 里笔记回答、联网回答，合成一个再统一排版', '会员 / 非会员两套话术，合成一个出口', '多个分类各自生成回复，最后统一加签名'],
+ demo:{title:'两套话术，一个出口', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:110, w:160, start:true, body:PL('{x} is_vip')},
+    {id:'i', type:'if', title:'条件分支', x:210, y:80, w:180, branch:true, body:RW('if', 'IF', '是会员') + RW('else', 'ELSE', '不是')},
+    {id:'l1', type:'llm', title:'LLM · 会员话术', x:450, y:10, w:180},
+    {id:'l2', type:'llm', title:'LLM · 普通话术', x:450, y:190, w:180},
+    {id:'g', type:'agg', title:'变量聚合器', x:690, y:95, w:190, body:TX('output ← 跑了的那一路')},
+    {id:'t', type:'tmpl', title:'模板 · 加统一落款', x:940, y:105, w:180, end:true}],
+  edges:[{s:'s', t:'i'}, {s:'i', h:'if', t:'l1'}, {s:'i', h:'else', t:'l2'}, {s:'l1', t:'g'}, {s:'l2', t:'g'}, {s:'g', t:'t'}],
+  ctl:() => CT.chips('vip', ['会员', '非会员'], '这位用户是'),
+  run:x => {
+    const vip = x.vip === '会员';
+    const text = vip ? '您是我们的会员，本单免运费，积分翻倍～' : '本单满 99 元包邮，注册会员还能积分翻倍～';
+    return [fr(['s', 'i', vip ? 'l1' : 'l2', 'g', 't'], RH('变量聚合器的 output' + SIM) + TX(esc(text)) + RH('加上统一落款后') + PRE(text + '\n—— 课程商城客服') +
+      MU('下游只接 output 一个变量，不用给两条路各配一遍。注意：它只管「每次只走一条」的分支，并行分支要用模板或代码合并。'))];
+  }}},
+
+{id:'doc', type:'doc', name:'文档提取器', group:'转换',
+ one:'把 PDF、Word、Excel 变成模型能读的文字。', like:'像把一份文件念给模型听。',
+ how:'输入接用户上传的文件 → 输出 text（多个文件就是文本列表）→ 接给 LLM。PDF、Word、Excel、PPT 都行，图片不行。',
+ scenes:['上传简历 PDF → 提取 → 改简历', '上传成绩单 Excel → 变成表格 → 分析', '上传合同 → 抽关键条款'],
+ demo:{title:'上传文件，读出文字', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:170, start:true, body:PL('{x} file · 文件')},
+    {id:'d', type:'doc', title:'文档提取器', x:240, y:40, w:180},
+    {id:'l', type:'llm', title:'LLM · 分析', x:490, y:40, w:170, end:true}],
+  edges:[{s:'s', t:'d'}, {s:'d', t:'l'}],
+  ctl:() => CT.chips('f', ['简历.pdf', '成绩单.xlsx', '会议纪要.docx', '自拍.jpg'], '用户上传了'),
+  run:x => {
+    const R = {
+      '简历.pdf':'张三｜求职意向：AI 产品经理\n教育：某大学 · 信息管理 · 2022 届\n经历：电商平台用户运营 3 年，负责社群与大促活动……',
+      '成绩单.xlsx':'| 姓名 | 提示词 | Agent | 总分 |\n|---|---|---|---|\n| 小明 | 85 | 78 | 163 |\n| 小红 | 92 | 88 | 180 |',
+      '会议纪要.docx':'会议纪要｜笔记助手评审\n1. 分诊准确率达标\n2. 联网偶发超时，加失败分支\n3. 上线前补 20 条测试'};
+    if (x.f === '自拍.jpg') return [fr(['s'], RH('处理不了') + '图片不是文档，文档提取器读不了。' + MU('要看图，得交给带视觉能力的 LLM（模型标签里有 VISION 的）。'), {err:['d']})];
+    return [fr(['s', 'd', 'l'], RH('提取出来的文字（text）' + SIM) + PRE(R[x.f]) + (x.f === '成绩单.xlsx' ? MU('Excel 会被转成 Markdown 表格，模型更好读。') : ''))];
+  }}},
+
+{id:'list', type:'list', name:'列表操作符', group:'转换',
+ one:'对一个列表筛选、排序、取前几个。', like:'像淘宝：只看自营、按销量排、看前 10 个。',
+ how:'输入选一个列表（比如一批文件）→ 设过滤条件 → 排序 → 取前 N 个 / 第一个 / 最后一个。',
+ scenes:['用户一次传了一堆文件，只留 PDF', '检索结果只取分数最高的前 3 条', '商品按价格排序'],
+ demo:{title:'一堆文件，只要 PDF', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:180, start:true, body:PL('{x} files · 文件列表')},
+    {id:'op', type:'list', title:'列表操作符', x:250, y:40, w:200},
+    {id:'d', type:'doc', title:'文档提取器', x:520, y:40, w:170, end:true}],
+  edges:[{s:'s', t:'op'}, {s:'op', t:'d'}],
+  ctl:() => CT.chk('pdf', '只要 PDF', true) + CT.sel('sort', '排序', ['不排序', '按大小（大→小）', '按名称'], '不排序') + CT.sel('top', '取', ['全部', '前 2 个', '第 1 个'], '全部'),
+  run:x => {
+    const files = [{n:'简历.pdf', t:'pdf', kb:320}, {n:'作品集.pdf', t:'pdf', kb:2100}, {n:'头像.jpg', t:'jpg', kb:800}, {n:'成绩单.xlsx', t:'xlsx', kb:45}, {n:'推荐信.pdf', t:'pdf', kb:150}];
+    let r = files.filter(f => !x.pdf || f.t === 'pdf');
+    if (x.sort === '按大小（大→小）') r = [...r].sort((a, b) => b.kb - a.kb);
+    if (x.sort === '按名称') r = [...r].sort((a, b) => a.n.localeCompare(b.n, 'zh'));
+    if (x.top === '前 2 个') r = r.slice(0, 2);
+    if (x.top === '第 1 个') r = r.slice(0, 1);
+    const li = a => `<ul>${a.map(f => `<li>${f.n} <span class="muted">${f.kb} KB</span></li>`).join('')}</ul>`;
+    const rule = [x.pdf ? '只要 PDF' : '', x.sort !== '不排序' ? x.sort : '', x.top !== '全部' ? '取' + x.top : ''].filter(Boolean).join(' · ') || '不做处理';
+    return [fr(['s', 'op', 'd'], RH('原始列表（5 个）') + li(files) + RH(`处理后（${r.length} 个）`) + li(r), {body:{op:PL(rule)}})];
+  }}},
+
+{id:'assign', type:'assign', name:'变量赋值器', group:'转换', badge:'主要用在 Chatflow', bcls:'cf',
+ one:'往「这次对话的小本本」里记东西，后面几轮都能用。', like:'像服务员在点单本上记下你点过什么，你加菜时不用再问。',
+ how:'先在「会话变量」里建好变量 → 用变量赋值器写入、覆盖或追加 → 后面几轮对话都能读到。（原理记忆课再讲）',
+ scenes:['记住用户选的岗位方向，后面出题都围绕它', '记住测验出过的题，交卷时对答案', '累计这次对话问了几次'],
+ demo:{title:'记住岗位方向（Chatflow）',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:130, w:160, start:true, body:PL('{x} query')},
+    {id:'c', type:'cls', title:'问题分类器', x:220, y:90, w:210, branch:true, body:RW('c1', '设定方向', '说想投什么岗位') + RW('c2', '出题', '要面试题')},
+    {id:'va', type:'assign', title:'变量赋值器', x:500, y:10, w:210, body:TX('target_job ← query（覆盖）')},
+    {id:'a1', type:'ans', title:'直接回复', x:770, y:20, w:160, end:true, body:TX('记住了')},
+    {id:'l', type:'llm', title:'LLM · 出题', x:500, y:220, w:210, body:PL('读取 target_job')},
+    {id:'a2', type:'ans', title:'直接回复 2', x:770, y:220, w:160, end:true}],
+  edges:[{s:'s', t:'c'}, {s:'c', h:'c1', t:'va'}, {s:'va', t:'a1'}, {s:'c', h:'c2', t:'l'}, {s:'l', t:'a2'}],
+  ctl:() => CT.btn('next', '发送下一句 →', true) + CT.btn('reset', '重来'),
+  run:(x, act, st) => {
+    const T = [
+      {u:'我想投 AI 产品经理', set:'AI 产品经理', b:'记住了：之后都按「AI 产品经理」帮你准备。'},
+      {u:'出 2 道面试题', b:'（按 AI 产品经理出题）\n1. 你怎么判断一个需求该用 Agent 还是工作流？\n2. 你会怎么设计一个 AI 功能的评测标准？'},
+      {u:'换成数据分析师吧', set:'数据分析师', b:'好的，已改成「数据分析师」。'},
+      {u:'再出 2 道', b:'（按数据分析师出题）\n1. 你会怎么定义一个产品的北极星指标？\n2. A/B 测试结果不显著时，你会怎么排查？'}];
+    if (act === 'init' || act === 'reset') { st.turn = 0; st.job = ''; st.chat = []; }
+    let ran = [];
+    if (act === 'next' && st.turn < T.length) {
+      const t = T[st.turn++];
+      if (t.set) st.job = t.set;
+      st.chat.push(bub('u', t.u), bub('b', t.b));
+      ran = t.set ? ['s', 'c', 'va', 'a1'] : ['s', 'c', 'l', 'a2'];
+    }
+    const box = `<div class="vbox">会话变量　<b>target_job</b> = ${st.job ? `"${st.job}"` : '<span class="muted">（空）</span>'}</div>`;
+    const end = st.turn >= T.length ? MU('对话演示完了，点「重来」再看一遍。') : '';
+    return [fr(ran, (st.chat.length ? `<div class="chat">${st.chat.join('')}</div>` : RH('点「发送下一句」开始')) + box + MU('会话变量只在这一次对话里有效，新开对话就清空。') + end)];
+  }}},
+
+/* ---------- 工具 ---------- */
+{id:'tool', type:'tool', name:'工具', group:'工具', used:{v:'v3', s:'s3_3', label:'V3 · 3.3 博查搜索'},
+ one:'调一个现成的插件：上网、查数据、画图。', like:'像手机上装好的 App，点开就能用。',
+ how:'插件市场装好 → 授权（填 Key）→ 在工具节点里填参数 → 输出 text / json / files。',
+ scenes:['博查搜索：联网查资料', '文生图：给文章配图', '飞书 / 钉钉：发消息、写表格'],
+ demo:{title:'换一个工具，换一种能力', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:170, start:true, body:PL('{x} query')},
+    {id:'t', type:'tool', title:'工具', x:240, y:30, w:210},
+    {id:'l', type:'llm', title:'LLM', x:520, y:40, w:160, end:true}],
+  edges:[{s:'s', t:'t'}, {s:'t', t:'l'}],
+  ctl:() => CT.chips('tool', ['博查搜索', '当前时间', '文生图'], '选一个工具'),
+  run:x => {
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    const now = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const R = {
+      '博查搜索':[PL('🔎 Bocha Web Search') + PL('query = 用户问题'), RH('输入参数') + PRE('query: "Dify 1.17 有什么新功能"') + RH('输出 text' + SIM) + PRE('1. 标题……｜链接……｜摘要……\n2. 标题……｜链接……｜摘要……\n3. 标题……｜链接……｜摘要……')],
+      '当前时间':[PL('🕒 Current Time') + PL('时区 Asia/Shanghai'), RH('输入参数') + PRE('timezone: "Asia/Shanghai"') + RH('输出 text（这次是真的）') + PRE(now) + MU('模型自己不知道今天几号，要靠这种工具告诉它。')],
+      '文生图':[PL('🎨 文生图') + PL('prompt = 画面描述'), RH('输入参数') + PRE('prompt: "一只在读笔记的橘猫，扁平插画"') + RH('输出 files' + SIM) + '<div style="width:120px;height:80px;border-radius:8px;background:linear-gradient(135deg,#FEC84B,#F97066);display:grid;place-items:center;color:#fff;font-size:12px">image.png</div>']};
+    const [body, out] = R[x.tool];
+    return [fr(['s', 't', 'l'], out + MU('同一个位置，换一个插件就是换一种能力。'), {body:{t:body}})];
+  }}},
+
+{id:'http', type:'http', name:'HTTP 请求', group:'工具',
+ one:'自己填网址，调任意一个接口拿数据。', like:'工具是存好的快捷拨号；HTTP 请求是自己拨号码。',
+ how:'选方法（GET / POST……）→ 填网址（可插变量）→ 加请求头和参数 → 输出状态码和返回内容。',
+ scenes:['查公司内部的订单、库存接口', '把结果推到自己的服务器', '调还没做成插件的第三方 API'],
+ demo:{title:'查订单物流', live:true,
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:40, w:170, start:true, body:PL('{x} order_id')},
+    {id:'h', type:'http', title:'HTTP 请求', x:230, y:30, w:230, body:PL('GET') + TX('api.example.com/orders/{x} order_id')},
+    {id:'l', type:'llm', title:'LLM · 说成人话', x:520, y:40, w:170},
+    {id:'a', type:'ans', title:'直接回复', x:750, y:40, w:150, end:true}],
+  edges:[{s:'s', t:'h'}, {s:'h', t:'l'}, {s:'l', t:'a'}],
+  ctl:() => CT.text('id', '订单号', '20260930001'),
+  run:x => {
+    const id = (x.id || '').trim();
+    if (!id) return [fr(['s'], RH('接口返回 400') + '订单号是空的，请求发不出去。', {err:['h']})];
+    const S = [{s:'已签收', c:'北京朝阳区', e:'已送达'}, {s:'运输中', c:'杭州转运中心', e:'10 月 2 日'}, {s:'派送中', c:'北京海淀站', e:'今天'}, {s:'待发货', c:'上海仓', e:'10 月 3 日'}][Number(id.slice(-1)) % 4 || 0];
+    return [fr(['s', 'h', 'l', 'a'], RH('发出去的请求') + PRE('GET https://api.example.com/orders/' + id) + RH('接口返回（body）') + PRE(JSON.stringify({order_id:id, status:S.s, location:S.c, eta:S.e}, null, 2)) +
+      RH('LLM 说成人话') + TX(esc(`你的订单 ${id} 目前「${S.s}」，在${S.c}，预计${S.e}。`)) + MU('示例接口，不是真实地址。改改订单号最后一位试试。'))];
+  }}},
+
+/* ---------- 人工 ---------- */
+{id:'human', type:'human', name:'人工介入', group:'人工',
+ one:'流程停下来，等人确认或填写，再往下走。', like:'像报销单走到领导那一步：签了字才往下走。',
+ how:'在要人把关的地方加这个节点 → 设计要人看的内容和按钮（通过 / 驳回……）→ 每个按钮一个出口，还能设超时。',
+ scenes:['AI 写完公众号稿，主编通过才发布', '退款超过 500 元，客服确认才执行', '合同条款提取完，法务确认再入库'],
+ demo:{title:'公众号发稿前，主编把关',
+  nodes:[
+    {id:'s', type:'start', title:'用户输入', x:0, y:110, w:150, start:true, body:PL('{x} topic')},
+    {id:'l', type:'llm', title:'LLM · 写稿', x:200, y:100, w:160},
+    {id:'h', type:'human', title:'人工介入 · 主编审核', x:420, y:60, w:220, branch:true, body:RW('ok', '通过', '') + RW('no', '驳回', '附修改意见') + RW('to', '超时', '24 小时没人处理')},
+    {id:'p', type:'tool', title:'发布到公众号', x:710, y:0, w:170, end:true},
+    {id:'r', type:'llm', title:'按意见重写', x:710, y:120, w:170, end:true},
+    {id:'n', type:'ans', title:'提醒主编', x:710, y:240, w:170, end:true}],
+  edges:[{s:'s', t:'l'}, {s:'l', t:'h'}, {s:'h', h:'ok', t:'p'}, {s:'h', h:'no', t:'r'}, {s:'h', h:'to', t:'n'}],
+  ctl:() => CT.btn('ok', '✅ 通过', true) + CT.btn('no', '↩️ 驳回') + CT.btn('to', '⏰ 超时没人管'),
+  run:(x, act) => {
+    const base = ['s', 'l', 'h'];
+    if (act === 'ok') return [fr([...base, 'p'], RH('主编点了「通过」') + '→ 自动发布。')];
+    if (act === 'no') return [fr([...base, 'r'], RH('主编点了「驳回」') + '→ 带着修改意见，让 AI 重写一版。')];
+    if (act === 'to') return [fr([...base, 'n'], RH('24 小时没人处理') + '→ 发提醒给主编，不会自己偷偷发出去。')];
+    return [fr(['s', 'l'], RH('流程停在「主编审核」') + MU('AI 写完稿就停下等人。点上面的按钮，模拟主编的操作。高风险动作（发布、退款、发邮件）前放一个人工介入：AI 干活，人来拍板。'), {wait:['h']})];
+  }}},
+];
+const NDOCS_BY = Object.fromEntries(NDOCS.map(d => [d.id, d]));
+const NORDER = NGROUPS.flatMap(g => NDOCS.filter(d => d.group === g).map(d => d.id));
+const NSTATE = {cur:'start', timer:null, st:{}};
+
+/* ---------- 小画布 ---------- */
+const dvp = document.getElementById('dvp'), dworld = document.getElementById('dworld'), dsvg = document.getElementById('dedges'), dctl = document.getElementById('dctl');
+let dview = {x:30, y:30, s:.9};
+function dApply(){
+  dworld.style.transform = `translate(${dview.x}px,${dview.y}px) scale(${dview.s})`;
+  dvp.style.backgroundSize = `${20 * dview.s}px ${20 * dview.s}px`;
+  dvp.style.backgroundPosition = `${dview.x}px ${dview.y}px`;
+}
+function dFit(){
+  const els = [...dworld.querySelectorAll('.node')];
+  if (!els.length) return;
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const el of els) { x1 = Math.min(x1, el.offsetLeft); y1 = Math.min(y1, el.offsetTop); x2 = Math.max(x2, el.offsetLeft + el.offsetWidth); y2 = Math.max(y2, el.offsetTop + el.offsetHeight); }
+  const pad = 36, vw = dvp.clientWidth, vh = dvp.clientHeight, bw = x2 - x1, bh = y2 - y1;
+  const s = Math.max(.35, Math.min((vw - pad * 2) / bw, (vh - pad * 2) / bh, 1));
+  dview = {s, x:(vw - bw * s) / 2 - x1 * s, y:(vh - bh * s) / 2 - y1 * s};
+  dApply();
+}
+function dHandle(id, h){
+  const el = dworld.querySelector(`.node[data-node="${id}"] [data-h="${h}"]`);
+  if (!el) return null;
+  const o = offsetIn(el, dworld);
+  return {x:o.x + el.offsetWidth / 2, y:o.y + el.offsetHeight / 2};
+}
+function dRender(f){
+  const d = NDOCS_BY[NSTATE.cur].demo;
+  const S = k => new Set(f[k] || []);
+  const ran = S('ran'), wait = S('wait'), err = S('err'), hide = S('hide');
+  dworld.querySelectorAll('.node').forEach(e => e.remove());
+  for (const n of d.nodes) {
+    if (hide.has(n.id)) continue;
+    const el = document.createElement('div');
+    el.className = 'node' + (ran.has(n.id) ? ' ran' : wait.has(n.id) ? ' wait' : err.has(n.id) ? ' err' : '');
+    el.dataset.node = n.id;
+    el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; el.style.width = (n.w || 200) + 'px';
+    const body = f.body && f.body[n.id] !== undefined ? f.body[n.id] : (n.body || '');
+    el.innerHTML = `${n.start ? '' : '<span class="h in" data-h="in"></span>'}<div class="nhead"><span class="nicon" style="background:${COLOR[n.type]}">${ICON[n.type]}</span><span class="ntitle">${n.title}</span></div>${body ? `<div class="nbody">${body}</div>` : ''}${n.branch || n.end ? '' : '<span class="h out" data-h="out"></span>'}`;
+    dworld.appendChild(el);
+  }
+  let html = '';
+  for (const e of d.edges) {
+    if (hide.has(e.s) || hide.has(e.t)) continue;
+    const a = dHandle(e.s, e.h || 'out'), b = dHandle(e.t, 'in');
+    if (!a || !b) continue;
+    const on = ran.has(e.s) && (ran.has(e.t) || wait.has(e.t) || err.has(e.t));
+    const dx = Math.max(40, (b.x - a.x) / 2);
+    html += `<path d="M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}" fill="none" stroke="${on ? '#12B76A' : '#B8C0CC'}" stroke-width="${on ? 2.6 : 1.8}"/>`;
+  }
+  dsvg.innerHTML = html;
+  const res = document.getElementById('dres');
+  if (res) { res.innerHTML = f.out || ''; res.style.display = f.out ? '' : 'none'; }
+}
+function dPlay(frames){
+  clearInterval(NSTATE.timer);
+  if (!frames || !frames.length) return;
+  let i = 0; dRender(frames[0]);
+  if (frames.length > 1) NSTATE.timer = setInterval(() => { i++; dRender(frames[i]); if (i >= frames.length - 1) clearInterval(NSTATE.timer); }, 750);
+}
+function dVals(){
+  const o = {};
+  dctl.querySelectorAll('[data-k]').forEach(el => {
+    if (el.classList.contains('chips')) { const on = el.querySelector('.chip.on'); o[el.dataset.k] = on ? on.dataset.v : ''; }
+    else if (el.type === 'checkbox') o[el.dataset.k] = el.checked;
+    else o[el.dataset.k] = el.value;
+  });
+  return o;
+}
+function dRun(act){ const d = NDOCS_BY[NSTATE.cur].demo; dPlay(d.run(dVals(), act, NSTATE.st)); }
+dctl.addEventListener('input', e => { if (e.target.matches('input[type=text],input:not([type]),input[type=number],textarea') && NDOCS_BY[NSTATE.cur].demo.live) dRun('live'); });
+dctl.addEventListener('change', e => { if (e.target.matches('select,input[type=checkbox]') && NDOCS_BY[NSTATE.cur].demo.live) dRun('live'); });
+dctl.addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (c) {
+    const g = c.parentElement;
+    g.querySelectorAll('.chip').forEach(z => z.classList.toggle('on', z === c));
+    if (g.dataset.fill) { const inp = dctl.querySelector(`[data-k="${g.dataset.fill}"]`); if (inp) inp.value = c.dataset.v; }
+    return dRun('chip');
+  }
+  const b = e.target.closest('[data-act]');
+  if (b) dRun(b.dataset.act);
+});
+let ddrag = null;
+dvp.addEventListener('mousedown', e => { ddrag = {x:e.clientX, y:e.clientY, vx:dview.x, vy:dview.y}; dvp.classList.add('drag'); dworld.classList.add('nt'); });
+window.addEventListener('mousemove', e => { if (!ddrag) return; dview.x = ddrag.vx + e.clientX - ddrag.x; dview.y = ddrag.vy + e.clientY - ddrag.y; dApply(); });
+window.addEventListener('mouseup', () => { if (ddrag) { ddrag = null; dvp.classList.remove('drag'); dworld.classList.remove('nt'); } });
+dvp.addEventListener('wheel', e => {
+  e.preventDefault(); dworld.classList.add('nt');
+  const r = dvp.getBoundingClientRect();
+  if (e.ctrlKey || e.metaKey) {
+    const cx = e.clientX - r.left, cy = e.clientY - r.top, s = Math.min(1.6, Math.max(.25, dview.s * (e.deltaY < 0 ? 1.1 : 1 / 1.1)));
+    dview.x = cx - (cx - dview.x) * (s / dview.s); dview.y = cy - (cy - dview.y) * (s / dview.s); dview.s = s;
+  } else { dview.x -= e.deltaX; dview.y -= e.deltaY; }
+  dApply();
+  clearTimeout(dvp._t); dvp._t = setTimeout(() => dworld.classList.remove('nt'), 150);
+}, {passive:false});
+document.getElementById('dfit').onclick = dFit;
+
+/* ---------- 列表 / 说明 ---------- */
+function nRenderList(){
+  let h = '<div class="nlegend"><i></i>今天带做里用过</div>';
+  for (const g of NGROUPS) {
+    h += `<div class="round">${g}</div>`;
+    for (const d of NDOCS.filter(z => z.group === g))
+      h += `<button class="nli${d.id === NSTATE.cur ? ' on' : ''}" data-n="${d.id}"><span class="nicon" style="background:${COLOR[d.type]}">${ICON[d.type]}</span>${d.name}${d.used ? '<span class="dot"></span>' : ''}</button>`;
+  }
+  const nl = document.getElementById('nlist');
+  nl.innerHTML = h;
+  nl.querySelectorAll('.nli').forEach(b => b.onclick = () => nSelect(b.dataset.n));
+  const on = nl.querySelector('.nli.on'); if (on) on.scrollIntoView({block:'nearest'});
+}
+function nRenderInfo(){
+  const d = NDOCS_BY[NSTATE.cur];
+  const el = document.getElementById('ninfo');
+  el.innerHTML = `<div class="nh"><span class="nicon" style="background:${COLOR[d.type]}">${ICON[d.type]}</span><h2>${d.name}</h2></div>
+    <div class="badges"><span class="bd">${d.group}</span>${d.badge ? `<span class="bd ${d.bcls}">${d.badge}</span>` : ''}${d.used ? '<span class="bd used">今天用过</span>' : ''}</div>
+    <div class="one">${d.one}</div><div class="like">💡 ${d.like}</div>
+    <div class="sec">怎么用</div><div class="how">${d.how}</div>
+    <div class="sec">用在哪</div><ul class="scn">${d.scenes.map(s => `<li>${s}</li>`).join('')}</ul>
+    ${d.used ? `<button class="jump" data-v="${d.used.v}" data-s="${d.used.s}">今天用在：${d.used.label} →</button>` : ''}`;
+  el.scrollTop = 0;
+  const j = el.querySelector('.jump');
+  if (j) j.onclick = () => { showFlows(); setVersion(j.dataset.v, j.dataset.s); };
+}
+function nInitDemo(){
+  const d = NDOCS_BY[NSTATE.cur].demo;
+  clearInterval(NSTATE.timer);
+  NSTATE.st = {};
+  document.getElementById('dtitle').textContent = d.title;
+  dctl.innerHTML = `<div class="ctls">${d.ctl()}</div><div class="dres" id="dres"></div>`;
+  const frames = d.run(dVals(), 'init', NSTATE.st);
+  dRender(frames[frames.length - 1]);
+  requestAnimationFrame(() => { dFit(); dRender(frames[frames.length - 1]); });
+}
+function nTopbar(){
+  document.getElementById('apptitle').textContent = 'Dify 节点初识 · 每个节点是干嘛的';
+  const i = NORDER.indexOf(NSTATE.cur);
+  document.getElementById('prog').textContent = `节点 ${i + 1} / ${NORDER.length}`;
+  document.getElementById('prev').disabled = i === 0;
+  document.getElementById('next').disabled = i === NORDER.length - 1;
+}
+function nSelect(id){
+  NSTATE.cur = id;
+  nRenderList(); nRenderInfo(); nInitDemo(); nTopbar(); markSeg(); save();
+}
+function nodeStep(k){
+  const i = NORDER.indexOf(NSTATE.cur), j = Math.max(0, Math.min(NORDER.length - 1, i + k));
+  if (j !== i) nSelect(NORDER[j]);
+}
+function showNodes(id){
+  MODE = 'nodes';
+  document.querySelector('.main').style.display = 'none';
+  document.getElementById('nv').classList.add('show');
+  nSelect(id && NDOCS_BY[id] ? id : NSTATE.cur);
+}
+function showFlows(){
+  MODE = 'flow';
+  clearInterval(NSTATE.timer);
+  document.getElementById('nv').classList.remove('show');
+  document.querySelector('.main').style.display = '';
+}
+
+/* ================= 启动 ================= */
+let sv = 'v3', ss = null, sm = 'nodes', sn = 'start';
+try {
+  const o = JSON.parse(localStorage.getItem('w2d3-manual') || 'null');
+  if (o) { if (VERSIONS[o.v]) { sv = o.v; ss = o.s; } sm = o.m || 'flow'; if (o.n && NDOCS_BY[o.n]) sn = o.n; }
+} catch (e) {}
+const qp = new URLSearchParams(location.search);
+if (VERSIONS[qp.get('v')]) { sv = qp.get('v'); ss = null; sm = 'flow'; }
+if (qp.get('step')) { ss = qp.get('step'); sm = 'flow'; }
+if (qp.get('tab') === 'nodes') sm = 'nodes';
+if (qp.get('node') && NDOCS_BY[qp.get('node')]) { sn = qp.get('node'); sm = 'nodes'; }
+NSTATE.cur = sn;
+setVersion(sv, ss);
+if (sm === 'nodes') showNodes(sn);
+if (qp.get('egg') === '1') openEgg();
+</script>
+</body>
+</html>
