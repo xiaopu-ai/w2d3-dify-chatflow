@@ -3,68 +3,119 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>笔记助手 Chatflow 搭建手册</title>
+<title>W2D3 Chatflow 带做手册</title>
 <style>
 :root{
+  /* ---- Ant Design v5 设计变量：外壳（导航、步骤说明、提示、表格、按钮） ---- */
+  --ant-primary:#1677ff; --ant-primary-hover:#4096ff; --ant-primary-bg:#e6f4ff; --ant-primary-border:#91caff;
+  --ant-success:#52c41a; --ant-success-bg:#f6ffed; --ant-success-border:#b7eb8f;
+  --ant-warning:#faad14; --ant-warning-bg:#fffbe6; --ant-warning-border:#ffe58f;
+  --ant-purple:#722ed1; --ant-purple-bg:#f9f0ff; --ant-purple-border:#d3adf7;
+  --ant-text:rgba(0,0,0,.88); --ant-text2:rgba(0,0,0,.65); --ant-text3:rgba(0,0,0,.45); --ant-text4:rgba(0,0,0,.25);
+  --ant-border:#d9d9d9; --ant-split:#f0f0f0; --ant-layout:#f5f5f5; --ant-fill:rgba(0,0,0,.04); --ant-fill2:rgba(0,0,0,.02); --ant-hover:rgba(0,0,0,.06);
+  --ant-shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --ant-shadow-sm:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  /* ---- Dify 仿真：画布、节点、右侧配置面板保留 Dify 原样，方便对着 Dify 找按钮 ---- */
   --bg:#F2F4F7; --card:#FFFFFF; --line:#EAECF0; --line2:#D0D5DD;
   --t1:#101828; --t2:#475467; --t3:#98A2B3;
   --blue:#155EEF; --blue-soft:#EFF4FF; --sel:#296DFF;
   --green:#12B76A; --green-soft:#ECFDF3; --orange:#F79009; --orange-soft:#FFFAEB; --red:#F04438; --red-soft:#FEF3F2;
   --violet:#7A5AF8; --violet-soft:#F4F3FF;
-  --c-start:#2970FF; --c-cls:#16B364; --c-kb:#16B364; --c-llm:#6172F3; --c-if:#06AED4; --c-ans:#F79009; --c-tool:#475467; --c-agent:#7A5AF8;
+  --c-start:#2970FF; --c-cls:#16B364; --c-kb:#16B364; --c-llm:#6172F3; --c-if:#06AED4; --c-ans:#F79009; --c-tool:#475467; --c-agent:#7A5AF8; --c-iter:#06AED4;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.55}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif;background:var(--ant-layout);color:var(--ant-text);font-size:14px;line-height:1.5715}
 button{font:inherit;cursor:pointer}
-code{font-family:"SF Mono",Menlo,monospace;background:#F2F4F7;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:12.5px}
-kbd{font-family:inherit;background:#fff;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:12px}
+code{font-family:"SFMono-Regular",Consolas,Menlo,Courier,monospace;margin:0 .2em;padding:.2em .4em .1em;font-size:85%;background:rgba(150,150,150,.1);border:1px solid rgba(100,100,100,.2);border-radius:3px}
+kbd{font-family:"SFMono-Regular",Consolas,Menlo,Courier,monospace;margin:0 .2em;padding:.15em .4em .1em;font-size:90%;background:rgba(150,150,150,.06);border:1px solid rgba(100,100,100,.2);border-bottom-width:2px;border-radius:3px}
+b,strong{font-weight:600}
 
-/* ---------- 顶栏 ---------- */
-.top{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--card);border-bottom:1px solid var(--line)}
-.appicon{width:34px;height:34px;border-radius:10px;background:#FFEAD5;display:grid;place-items:center;font-size:20px;cursor:pointer;user-select:none;transition:transform .15s}
-.appicon:active{transform:scale(.9)}
-.apptitle{font-weight:600;font-size:15px}
-.appsub{color:var(--t3);font-size:12px}
-.top .grow{flex:1}
-.seg{display:flex;background:#F2F4F7;border-radius:10px;padding:3px}
-.seg button{border:0;background:none;border-radius:8px;padding:5px 12px;font-size:13px;color:var(--t2);white-space:nowrap}
-.seg button.on{background:#fff;color:var(--t1);font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.1)}
-.prog{color:var(--t2);font-size:13px;white-space:nowrap}
-.btn{border:1px solid var(--line2);background:#fff;color:var(--t1);border-radius:8px;padding:6px 12px;font-size:13px;white-space:nowrap}
-.btn:hover{background:#F9FAFB}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.primary:hover{background:#004EEB}
-.btn:disabled{opacity:.4;cursor:default}
+/* ---------- 顶栏（Layout.Header + 横向 Menu） ---------- */
+.hdr{height:64px;display:flex;align-items:center;gap:16px;padding:0 24px;background:#fff;border-bottom:1px solid var(--ant-split);position:relative;z-index:5}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--ant-primary-bg);display:grid;place-items:center;font-size:18px;cursor:pointer;user-select:none;flex:none;transition:transform .15s}
+.logo:active{transform:scale(.9)}
+.brand{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+.brand b{font-size:16px;color:var(--ant-text);white-space:nowrap}
+.brand small{font-size:12px;color:var(--ant-text3);white-space:nowrap}
+.topnav{display:flex;align-self:stretch;margin-left:16px}
+.topnav button{position:relative;border:0;background:none;padding:0 20px;font-size:14px;color:var(--ant-text);white-space:nowrap;transition:color .2s}
+.topnav button:hover{color:var(--ant-primary)}
+.topnav button.on{color:var(--ant-primary);font-weight:500}
+.topnav button::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:2px;background:transparent;transition:background .2s}
+.topnav button.on::after{background:var(--ant-primary)}
+.grow{flex:1}
+.prog{display:flex;align-items:center;gap:10px;color:var(--ant-text2);white-space:nowrap}
+.pbar{width:120px;height:6px;border-radius:100px;background:var(--ant-fill);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:var(--ant-primary);border-radius:100px;transition:width .3s}
 
-/* ---------- 主体三栏 ---------- */
-.main{display:grid;grid-template-columns:240px minmax(0,1fr) 420px;height:calc(100vh - 56px)}
-.steps{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:10px 8px 24px}
-.round{font-size:12px;font-weight:600;color:var(--t3);padding:14px 10px 6px;letter-spacing:.02em}
-.step{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:7px 10px;color:var(--t2);font-size:13px}
-.step:hover{background:#F9FAFB}
-.step.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
-.step .no{flex:none;min-width:26px;color:var(--t3);font-variant-numeric:tabular-nums}
-.step.on .no{color:var(--blue)}
-.step.done .no::after{content:" ✓";color:var(--green)}
+/* ---------- 按钮（Button） ---------- */
+.btn{height:32px;padding:4px 15px;border:1px solid var(--ant-border);background:#fff;color:var(--ant-text);border-radius:6px;font-size:14px;line-height:1.5715;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.02);transition:all .2s}
+.btn:hover{color:var(--ant-primary-hover);border-color:var(--ant-primary-hover)}
+.btn.primary{background:var(--ant-primary);border-color:var(--ant-primary);color:#fff;box-shadow:0 2px 0 rgba(5,145,255,.1)}
+.btn.primary:hover{background:var(--ant-primary-hover);border-color:var(--ant-primary-hover);color:#fff}
+.btn:disabled,.btn:disabled:hover{color:var(--ant-text4);background:var(--ant-fill);border-color:var(--ant-border);box-shadow:none;cursor:not-allowed}
+
+/* ---------- 标签（Tag） ---------- */
+.tg{display:inline-block;font-size:12px;line-height:20px;padding:0 7px;border-radius:4px;border:1px solid var(--ant-border);background:#fafafa;color:var(--ant-text);white-space:nowrap;font-weight:400;vertical-align:1px}
+.tg.blue{color:#0958d9;background:var(--ant-primary-bg);border-color:var(--ant-primary-border)}
+.tg.green{color:#389e0d;background:var(--ant-success-bg);border-color:var(--ant-success-border)}
+.tg.orange{color:#d46b08;background:#fff7e6;border-color:#ffd591}
+.tg.magenta{color:#c41d7f;background:#fff0f6;border-color:#ffadd2}
+.tg.purple{color:#531dab;background:var(--ant-purple-bg);border-color:var(--ant-purple-border)}
+.tg.sm{font-size:11px;line-height:16px;padding:0 4px}
+
+/* ---------- 主体：侧栏 | 画布 + 说明 | 配置面板 ---------- */
+.main{display:grid;grid-template-columns:272px minmax(0,1fr) 400px;height:calc(100vh - 64px)}
+.sider{background:#fff;border-right:1px solid var(--ant-split);display:flex;flex-direction:column;min-height:0}
+.sider-top{flex:none;padding:16px 16px 4px;border-bottom:1px solid var(--ant-split)}
+.cases{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px}
+.case{display:block;width:100%;text-align:left;border:1px solid var(--ant-border);background:#fff;border-radius:8px;padding:10px 12px;transition:all .2s}
+.case:hover{border-color:var(--ant-primary-hover)}
+.case.on{border-color:var(--ant-primary);background:var(--ant-primary-bg)}
+.case .cn{font-size:12px;color:var(--ant-text3)}
+.case.on .cn{color:var(--ant-primary)}
+.case b{display:block;font-size:14px;color:var(--ant-text);margin:1px 0 2px}
+.case small{display:block;font-size:12px;color:var(--ant-text3);line-height:1.5}
+/* 分段控制器（Segmented） */
+.segm{display:flex;background:var(--ant-fill);border-radius:6px;padding:2px;margin-bottom:12px}
+.segm button{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;border:0;background:none;border-radius:4px;height:28px;padding:0 8px;font-size:13px;color:var(--ant-text2);white-space:nowrap;transition:all .2s}
+.segm button:hover{color:var(--ant-text)}
+.segm button.on{background:#fff;color:var(--ant-text);font-weight:500;box-shadow:var(--ant-shadow-sm)}
+/* 侧边菜单（Menu inline + ItemGroup） */
+.menu{flex:1;overflow:auto;padding:4px 0 24px}
+.mg{padding:12px 16px 4px 24px;font-size:13px;color:var(--ant-text3)}
+.step{display:flex;gap:8px;align-items:flex-start;width:calc(100% - 8px);margin:4px;text-align:left;border:0;background:none;border-radius:8px;padding:9px 12px 9px 24px;color:var(--ant-text);font-size:14px;line-height:1.5;transition:background .2s,color .2s}
+.step:hover{background:var(--ant-hover)}
+.step.on{background:var(--ant-primary-bg);color:var(--ant-primary)}
+.step .no{flex:none;min-width:28px;color:var(--ant-text3);font-variant-numeric:tabular-nums}
+.step.on .no{color:var(--ant-primary)}
+.step .tick{margin-left:auto;flex:none;color:var(--ant-success);font-size:12px;line-height:21px}
 
 .center{display:flex;flex-direction:column;min-width:0;min-height:0}
-.vp{position:relative;flex:1 1 auto;min-height:340px;overflow:hidden;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:20px 20px;cursor:grab}
+/* 面包屑（Breadcrumb） */
+.crumb{flex:none;height:44px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#fff;border-bottom:1px solid var(--ant-split);min-width:0}
+.bc{display:flex;align-items:center;min-width:0;overflow:hidden;white-space:nowrap;color:var(--ant-text3)}
+.bc span{overflow:hidden;text-overflow:ellipsis;flex:none}
+.bc span:last-child{color:var(--ant-text);flex:0 1 auto}
+.bc i{font-style:normal;margin:0 8px;flex:none}
+.board{margin-left:auto;flex:none;font-size:12px;color:var(--ant-text3);white-space:nowrap}
+.board b{color:var(--ant-text2);font-weight:500}
+
+.vp{position:relative;flex:1 1 auto;min-height:320px;overflow:hidden;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:20px 20px;cursor:grab}
 .vp.drag{cursor:grabbing}
-.board{position:absolute;left:12px;top:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:12.5px;color:var(--t2);box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
-.board b{color:var(--t1)}
 .world{position:absolute;left:0;top:0;transform-origin:0 0;transition:transform .35s ease}
 .world.nt{transition:none}
 .world svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
-.zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
-.zoom button{border:0;background:none;border-radius:6px;padding:3px 9px;color:var(--t2);font-size:13px}
-.zoom button:hover{background:#F2F4F7}
-.zoom span{padding:3px 6px;color:var(--t2);font-size:12px;min-width:44px;text-align:center}
-.legend{position:absolute;left:12px;bottom:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--t2);box-shadow:0 1px 3px rgba(16,24,40,.08);z-index:2}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:2px;background:#fff;border-radius:8px;padding:4px;box-shadow:var(--ant-shadow);z-index:2}
+.zoom button{border:0;background:none;border-radius:4px;padding:2px 8px;color:var(--ant-text);font-size:13px}
+.zoom button:hover{background:var(--ant-hover)}
+.zoom span{padding:2px 6px;color:var(--ant-text2);font-size:12px;min-width:44px;text-align:center;line-height:22px}
+.legend{position:absolute;left:12px;bottom:12px;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;color:var(--ant-text2);box-shadow:var(--ant-shadow);z-index:2}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;border:2px solid var(--sel);vertical-align:-1px;margin-right:4px}
 
 /* ---------- 节点（仿 Dify） ---------- */
-.node{position:absolute;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 0 0 1px var(--line);padding-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.node{position:absolute;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 0 0 1px var(--line);padding-bottom:10px;cursor:pointer;transition:box-shadow .15s;color:var(--t1);font-size:14px;line-height:1.55}
 .node:hover{box-shadow:0 4px 10px rgba(16,24,40,.10),0 0 0 1px var(--line2)}
 .node.sel{box-shadow:0 0 0 2px var(--sel),0 6px 16px rgba(41,109,255,.18)}
 .node .nhead::after{margin-left:auto;flex:none;white-space:nowrap;font-size:10.5px;font-weight:600;border-radius:6px;padding:1px 6px}
@@ -79,7 +130,7 @@ kbd{font-family:inherit;background:#fff;border:1px solid var(--line2);border-bot
 .ntitle{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .nbody{padding:0 12px;font-size:12px;color:var(--t2)}
 .nlabel{font-size:10.5px;color:var(--t3);font-weight:600;margin:4px 0 2px}
-.pill{display:flex;align-items:center;gap:6px;background:#F2F4F7;border-radius:8px;padding:4px 8px;font-size:12px;color:var(--t1);margin-top:2px}
+.pill{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;background:#F2F4F7;border-radius:8px;padding:4px 8px;font-size:12px;color:var(--t1);margin-top:2px}
 .pill .tagc{font-size:10px;color:var(--t3);border:1px solid var(--line2);border-radius:4px;padding:0 4px}
 .tl{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;margin-top:4px;font-size:12px;color:var(--t1);background:#fff}
 .row{position:relative;background:#F9FAFB;border-radius:8px;padding:5px 8px;margin-top:5px}
@@ -92,37 +143,54 @@ kbd{font-family:inherit;background:#fff;border:1px solid var(--line2);border-bot
 .h.in{left:-2px;top:14px}
 .h.out{right:-2px;top:14px}
 .row .h.out{right:-14px;top:calc(50% - 7px)}
+/* 迭代：带内框的容器节点 */
+.node.iter{background:#fff}
+.iarea{position:absolute;left:12px;right:12px;bottom:12px;border-radius:12px;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:14px 14px}
+.istart{position:absolute;left:14px;top:22px;width:26px;height:26px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line);display:grid;place-items:center;color:var(--c-iter);font-size:10px}
+.istart .h.out{right:-6px;top:6px}
 
 /* 变量 chip（仿 Dify） */
-.var{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;white-space:nowrap;vertical-align:1px}
+.var{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12px;line-height:20px;white-space:nowrap;vertical-align:1px;color:var(--t1)}
 .var i{font-style:normal;color:var(--blue);font-weight:600;margin-right:2px}
 .var em{font-style:normal;color:var(--t2)}
 .var s{text-decoration:none;color:var(--t3)}
 .var b{color:var(--blue);font-weight:500}
 
-/* ---------- 说明卡 ---------- */
-.guide{flex:0 0 auto;max-height:44vh;overflow:auto;background:var(--card);border-top:1px solid var(--line);padding:16px 22px 28px}
-.gh{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
-.gh .gno{font-size:13px;color:var(--blue);font-weight:700}
-.gh h2{margin:0;font-size:17px}
-.gh .gr{color:var(--t3);font-size:12px}
-.guide ol{margin:6px 0 10px;padding-left:22px}
-.guide li{margin:5px 0}
-.ui{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12.5px;line-height:20px;color:var(--t1);font-weight:500;white-space:nowrap}
-.call{border-radius:10px;padding:8px 12px;margin:8px 0;font-size:13px}
-.call b.k{margin-right:6px}
-.call.tip{background:var(--blue-soft);color:#1849A9}
-.call.warn{background:var(--orange-soft);color:#93370D}
-.call.check{background:var(--green-soft);color:#05603A}
-.call.egg{background:var(--violet-soft);color:#5925DC}
-table.t{border-collapse:collapse;margin:6px 0 10px;font-size:13px;width:100%}
-table.t th,table.t td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
-table.t th{background:#F9FAFB;font-weight:600;color:var(--t2)}
-.cb{position:relative;background:#F9FAFB;border:1px solid var(--line);border-radius:8px;padding:8px 64px 8px 10px;margin:6px 0;white-space:pre-wrap;font-size:12.5px}
-.cb .cp{position:absolute;right:6px;top:6px}
+/* ---------- 步骤说明（Card + Alert + Table） ---------- */
+.guide{flex:0 0 auto;max-height:46vh;overflow:auto;background:#fff;border-top:1px solid var(--ant-split);padding:16px 24px 24px}
+.gh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.gno{flex:none;min-width:28px;height:28px;padding:0 9px;border-radius:14px;background:var(--ant-primary);color:#fff;font-size:13px;font-weight:600;display:grid;place-items:center;font-variant-numeric:tabular-nums}
+.gh h2{margin:0;font-size:16px;font-weight:600;color:var(--ant-text);min-width:0}
+.gh .tg{margin-left:auto;flex:none}
+ol.acts{list-style:none;counter-reset:a;margin:0 0 12px;padding:0}
+ol.acts>li{counter-increment:a;position:relative;padding-left:30px;margin:8px 0}
+ol.acts>li::before{content:counter(a);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--ant-primary-bg);color:var(--ant-primary);font-size:12px;font-weight:600;display:grid;place-items:center}
+.ui{display:inline-block;background:#fafafa;border:1px solid var(--ant-border);border-radius:4px;padding:0 7px;font-size:12px;line-height:20px;color:var(--ant-text);white-space:nowrap;vertical-align:1px}
+.alert{display:flex;gap:8px;align-items:flex-start;border:1px solid;border-radius:8px;padding:8px 12px;margin:8px 0;color:var(--ant-text)}
+.alert .ai{flex:none;width:14px;height:14px;margin-top:4px}
+.alert .ai svg{width:14px;height:14px;display:block;fill:currentColor}
+.alert b.k{margin-right:6px}
+.alert.info{background:var(--ant-primary-bg);border-color:var(--ant-primary-border)}
+.alert.info .ai{color:var(--ant-primary)}
+.alert.warn{background:var(--ant-warning-bg);border-color:var(--ant-warning-border)}
+.alert.warn .ai{color:var(--ant-warning)}
+.alert.check{background:var(--ant-success-bg);border-color:var(--ant-success-border)}
+.alert.check .ai{color:var(--ant-success)}
+.alert.egg{background:var(--ant-purple-bg);border-color:var(--ant-purple-border)}
+.alert.egg .ai{color:var(--ant-purple)}
+table.t{border-collapse:separate;border-spacing:0;margin:8px 0 12px;width:100%;border:1px solid var(--ant-split);border-radius:8px;overflow:hidden}
+table.t th,table.t td{padding:8px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--ant-split);border-right:1px solid var(--ant-split)}
+table.t th{background:#fafafa;font-weight:600;white-space:nowrap}
+table.t tr>*:last-child{border-right:0}
+table.t tr:last-child>td{border-bottom:0}
+.cb{position:relative;background:var(--ant-fill2);border:1px solid var(--ant-split);border-radius:6px;padding:8px 76px 8px 12px;margin:6px 0;white-space:pre-wrap;font-size:13px}
+.cb .cp{position:absolute;right:8px;top:6px}
+.cp{height:24px;padding:0 8px;border:1px solid var(--ant-border);background:#fff;border-radius:4px;font-size:12px;color:var(--ant-text);transition:all .2s;white-space:nowrap}
+.cp:hover{color:var(--ant-primary-hover);border-color:var(--ant-primary-hover)}
+.cp.ok{color:var(--ant-success);border-color:var(--ant-success)}
 
 /* ---------- 右侧配置面板（仿 Dify） ---------- */
-.panel{background:var(--card);border-left:1px solid var(--line);overflow:auto}
+.panel{background:var(--card);border-left:1px solid var(--line);overflow:auto;color:var(--t1);font-size:14px;line-height:1.55}
 .ph{position:sticky;top:0;background:#fff;z-index:2;padding:14px 16px 0;border-bottom:1px solid var(--line)}
 .phr{display:flex;align-items:center;gap:10px}
 .phr .nicon{width:26px;height:26px;border-radius:8px}
@@ -140,15 +208,12 @@ table.t th{background:#F9FAFB;font-weight:600;color:var(--t2)}
 .box{background:#F2F4F7;border-radius:8px;padding:6px 10px;min-height:32px;font-size:13px;color:var(--t1)}
 .muted{color:var(--t3);font-size:12.5px}
 .note{color:var(--t2);font-size:12px;margin-top:5px}
-.kbitem{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;margin-top:4px}
+.kbitem{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;margin-top:4px}
 .pe{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#F9FAFB}
 .peh{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--line);background:#fff}
 .peh span{font-size:12px;font-weight:600;color:var(--t2);letter-spacing:.04em}
 .pe pre{margin:0;padding:10px 12px;font-family:inherit;font-size:12.5px;white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;color:var(--t1)}
 mark{background:#FEF0C7;color:#93370D;border-radius:3px;padding:0 2px}
-.cp{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:1px 8px;font-size:12px;color:var(--t2)}
-.cp:hover{color:var(--blue);border-color:var(--blue)}
-.cp.ok{color:var(--green);border-color:var(--green)}
 .cc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff}
 .cct{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
 .cct b{font-size:13px}
@@ -161,86 +226,89 @@ mark{background:#FEF0C7;color:#93370D;border-radius:3px;padding:0 2px}
 .outv b{font-weight:600}
 .outv span{color:var(--t3)}
 .cond{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
-.ifl{flex:none;width:42px;font-size:12px;font-weight:700;color:var(--t2);padding-top:5px}
+.ifl{flex:none;width:48px;font-size:12px;font-weight:700;color:var(--t2);padding-top:5px}
 .cr{flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#F2F4F7;border-radius:8px;padding:6px 8px}
 .op{background:#fff;border:1px solid var(--line2);border-radius:6px;padding:0 6px;font-size:12px}
 .val{font-size:13px;font-weight:600}
 .empty{padding:40px 24px;color:var(--t3);text-align:center;font-size:13px}
 
-.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#101828;color:#fff;border-radius:8px;padding:7px 14px;font-size:13px;opacity:0;transition:.2s;pointer-events:none;z-index:30}
-.toast.show{opacity:1;transform:translateX(-50%)}
+/* ---------- 全局提示（message） ---------- */
+.toast{position:fixed;left:50%;top:16px;transform:translate(-50%,-12px);background:#fff;color:var(--ant-text);border-radius:8px;padding:9px 12px;box-shadow:var(--ant-shadow);opacity:0;transition:.2s;pointer-events:none;z-index:30;display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:16px;height:16px;fill:var(--ant-success);flex:none}
 
-/* ---------- 彩蛋 ---------- */
-.egg{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;justify-content:center;z-index:20;padding:24px}
+/* ---------- 彩蛋（Modal） ---------- */
+.egg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:24px}
 .egg.show{display:flex}
-.eggcard{background:#fff;border-radius:18px;max-width:980px;width:100%;max-height:90vh;overflow:auto;padding:24px 26px;box-shadow:0 24px 48px rgba(16,24,40,.25);animation:pop .35s ease}
-@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
-.eggcard h3{margin:0 0 4px;font-size:20px}
-.eggsub{color:var(--t2);margin-bottom:16px}
+.eggcard{background:#fff;border-radius:8px;max-width:960px;width:100%;max-height:90vh;overflow:auto;padding:20px 24px;box-shadow:var(--ant-shadow);animation:pop .25s ease}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.eggcard h3{margin:0 0 8px;font-size:16px;font-weight:600}
+.eggsub{color:var(--ant-text2);margin-bottom:16px}
 .eggs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.ec{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#FCFCFD}
-.ec h4{margin:0 0 8px;font-size:15px}
-.ec h4 span{font-size:12px;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:6px;padding:1px 7px;margin-right:6px}
-.ec pre{background:#F2F4F7;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;margin:6px 0 10px;white-space:pre;overflow:auto}
-.ec ul{margin:4px 0 8px;padding-left:18px;font-size:13px}
+.ec{border:1px solid var(--ant-split);border-radius:8px;padding:16px;background:#fff}
+.ec h4{margin:0 0 8px;font-size:15px;font-weight:600}
+.ec h4 span{font-size:12px;font-weight:400;color:#531dab;background:var(--ant-purple-bg);border:1px solid var(--ant-purple-border);border-radius:4px;padding:0 7px;margin-right:6px}
+.ec pre{background:#fafafa;border:1px solid var(--ant-split);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.5;margin:6px 0 10px;white-space:pre;overflow:auto}
+.ec ul{margin:4px 0 8px;padding-left:18px}
 .ec li{margin:3px 0}
-.ec .hint{background:var(--orange-soft);color:#93370D;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:6px 0}
-.ec .q{background:var(--violet-soft);color:#5925DC;border-radius:8px;padding:6px 10px;font-size:12.5px}
-.eggfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;color:var(--t3);font-size:12.5px}
+.ec .hint{background:var(--ant-warning-bg);border:1px solid var(--ant-warning-border);border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
+.ec .q{background:var(--ant-purple-bg);border:1px solid var(--ant-purple-border);border-radius:8px;padding:6px 10px;font-size:13px}
+.eggfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;color:var(--ant-text3);font-size:13px}
 
-.nv{display:none;grid-template-columns:220px 360px minmax(0,1fr);height:calc(100vh - 56px)}
+/* ---------- 节点初识 ---------- */
+.nv{display:none;grid-template-columns:240px 380px minmax(0,1fr);height:calc(100vh - 64px)}
 .nv.show{display:grid}
-.nlist{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:10px 8px 24px}
-.nli{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;border-radius:8px;padding:6px 10px;font-size:13px;color:var(--t2);text-align:left}
-.nli:hover{background:#F9FAFB}
-.nli.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.nlist{background:#fff;border-right:1px solid var(--ant-split);overflow:auto;padding:4px 0 24px}
+.nli{display:flex;align-items:center;gap:10px;width:calc(100% - 8px);margin:4px;border:0;background:none;border-radius:8px;padding:8px 12px 8px 24px;font-size:14px;color:var(--ant-text);text-align:left;transition:background .2s,color .2s}
+.nli:hover{background:var(--ant-hover)}
+.nli.on{background:var(--ant-primary-bg);color:var(--ant-primary)}
 .nli .nicon{width:20px;height:20px;border-radius:6px}
 .nli .nicon svg{width:12px;height:12px}
-.nli .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
-.nlegend{font-size:11.5px;color:var(--t3);padding:4px 10px 0}
-.nlegend i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:1px}
-.ninfo{background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:22px 22px 30px}
+.nli .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--ant-success);flex:none}
+.nlegend{font-size:12px;color:var(--ant-text3);padding:12px 24px 0}
+.nlegend i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ant-success);margin-right:6px;vertical-align:1px}
+.ninfo{background:#fff;border-right:1px solid var(--ant-split);overflow:auto;padding:24px}
 .nh{display:flex;align-items:center;gap:10px}
 .nh .nicon{width:30px;height:30px;border-radius:9px}
 .nh .nicon svg{width:18px;height:18px}
-.nh h2{margin:0;font-size:19px}
-.badges{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
-.bd{font-size:11.5px;border-radius:6px;padding:1px 7px;background:#F2F4F7;color:var(--t2)}
-.bd.wf{background:#EFF8FF;color:#175CD3}
-.bd.cf{background:#FDF2FA;color:#C11574}
-.bd.used{background:var(--green-soft);color:#067647}
-.one{font-size:16px;font-weight:600;line-height:1.5;margin-bottom:6px}
-.like{color:var(--t2);font-size:13.5px}
-.sec{font-size:12px;font-weight:600;color:var(--t3);margin:18px 0 6px;letter-spacing:.04em}
-.how{font-size:13.5px}
-.scn{margin:0;padding-left:18px;font-size:13.5px}
+.nh h2{margin:0;font-size:20px;font-weight:600}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 16px}
+.one{font-size:16px;font-weight:500;line-height:1.5;margin-bottom:6px}
+.like{color:var(--ant-text2)}
+.sec{font-size:14px;font-weight:600;margin:20px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--ant-split)}
+.scn{margin:0;padding-left:18px}
 .scn li{margin:4px 0}
-.jump{margin-top:18px;border:1px solid var(--line2);background:#fff;border-radius:8px;padding:5px 10px;font-size:12.5px;color:var(--blue)}
-.jump:hover{border-color:var(--blue)}
+.jumps{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:20px}
+.jump{height:32px;padding:4px 15px;border:1px solid var(--ant-border);background:#fff;border-radius:6px;font-size:14px;color:var(--ant-primary);box-shadow:0 2px 0 rgba(0,0,0,.02);transition:all .2s;text-align:left}
+.jump:hover{color:var(--ant-primary-hover);border-color:var(--ant-primary-hover)}
 .demo{display:flex;flex-direction:column;min-width:0;min-height:0}
-.dbar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:#fff;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2)}
-.dbar b{font-size:14px;color:var(--t1)}
-.dbar .muted{margin-left:auto}
+.dbar{flex:none;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;background:#fff;border-bottom:1px solid var(--ant-split);color:var(--ant-text3)}
+.dbar b{font-size:14px;color:var(--ant-text)}
+.dbar .muted{margin-left:auto;font-size:12px;color:var(--ant-text3)}
 .dvp{position:relative;flex:1 1 auto;min-height:240px;overflow:hidden;background-color:#F2F4F7;background-image:radial-gradient(#C8CEDA 1px,transparent 1px);background-size:20px 20px;cursor:grab}
 .dvp.drag{cursor:grabbing}
-.dctl{flex:0 0 auto;max-height:50vh;overflow:auto;background:#fff;border-top:1px solid var(--line);padding:12px 16px 16px}
-.ctls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
-.ci{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--t2)}
-.ci input,.ci select,.ci textarea{font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:8px;padding:5px 8px;background:#fff;color:var(--t1)}
+.dctl{flex:0 0 auto;max-height:50vh;overflow:auto;background:#fff;border-top:1px solid var(--ant-split);padding:16px}
+.ctls{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+.ci{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ant-text2)}
+.ci input,.ci select,.ci textarea{font:inherit;font-size:14px;border:1px solid var(--ant-border);border-radius:6px;padding:4px 11px;min-height:32px;background:#fff;color:var(--ant-text);outline:0;transition:all .2s}
+.ci input:hover,.ci select:hover,.ci textarea:hover{border-color:var(--ant-primary-hover)}
+.ci input:focus,.ci select:focus,.ci textarea:focus{border-color:var(--ant-primary-hover);box-shadow:0 0 0 2px rgba(5,145,255,.1)}
 .ci input[type=number]{width:110px}
 .ci.wide{flex:1 1 100%}
 .ci textarea{width:100%;resize:vertical}
-.ck{font-size:13px;color:var(--t1);display:flex;align-items:center;gap:6px;padding-bottom:6px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line2);background:#fff;border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--t2)}
-.chip.on{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.ck{color:var(--ant-text);display:flex;align-items:center;gap:6px;padding-bottom:6px}
+.ck input{accent-color:var(--ant-primary)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:30px;border:1px solid var(--ant-border);background:#fff;border-radius:6px;padding:0 14px;font-size:14px;color:var(--ant-text);transition:all .2s}
+.chip:hover{color:var(--ant-primary-hover);border-color:var(--ant-primary-hover)}
+.chip.on{border-color:var(--ant-primary);background:var(--ant-primary-bg);color:var(--ant-primary)}
 .code{background:#101828;color:#E4E7EC;border-radius:8px;padding:8px 10px;font-family:"SF Mono",Menlo,monospace;font-size:12px;white-space:pre;overflow:auto;margin:0}
-.dres{margin-top:12px;background:#F9FAFB;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
-.dres pre{margin:4px 0;white-space:pre-wrap;font-family:"SF Mono",Menlo,monospace;font-size:12px}
+.dres{margin-top:16px;background:#fafafa;border:1px solid var(--ant-split);border-radius:8px;padding:12px 16px}
+.dres pre{margin:4px 0;white-space:pre-wrap;font-family:"SFMono-Regular",Consolas,Menlo,monospace;font-size:12px}
 .dres ol,.dres ul{margin:4px 0;padding-left:20px}
-.rh{font-size:12px;font-weight:600;color:var(--t3);margin:6px 0 4px}
+.rh{font-size:12px;font-weight:600;color:var(--ant-text3);margin:6px 0 4px}
 .rh:first-child{margin-top:0}
-.sim{display:inline-block;font-size:11px;font-weight:600;color:#B54708;background:var(--orange-soft);border-radius:4px;padding:0 5px;margin-left:6px}
+.sim{display:inline-block;font-size:11px;font-weight:400;color:#d46b08;background:#fff7e6;border:1px solid #ffd591;border-radius:4px;padding:0 5px;margin-left:6px;line-height:16px}
 .node.ran{box-shadow:0 0 0 2px var(--green),0 4px 12px rgba(18,183,106,.15)}
 .node.ran .nhead::after{content:"✓";color:#fff;background:var(--green);border-radius:50%;width:16px;height:16px;padding:0;display:grid;place-items:center;font-size:11px}
 .node.wait{box-shadow:0 0 0 2px var(--orange)}
@@ -255,45 +323,69 @@ mark{background:#FEF0C7;color:#93370D;border-radius:3px;padding:0 2px}
 .bar i{display:block;height:100%;background:var(--green)}
 .vbox{border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;background:#fff;font-size:12.5px;margin-top:6px}
 
-@media (max-width:1280px){ .main{grid-template-columns:200px minmax(0,1fr) 360px} .nv{grid-template-columns:180px 300px minmax(0,1fr)} }
+@media (max-width:1280px){
+  .main{grid-template-columns:240px minmax(0,1fr) 340px}
+  .nv{grid-template-columns:200px 320px minmax(0,1fr)}
+  .brand small,.pbar{display:none}
+}
 @media (max-width:980px){
+  .hdr{flex-wrap:wrap;height:auto;padding:10px 16px 0;gap:8px 12px}
+  .brand{flex:1}
+  .grow{display:none}
+  .topnav{order:5;width:calc(100% + 32px);margin:0 -16px;padding:0 4px;height:44px;align-self:auto;border-top:1px solid var(--ant-split)}
   .main{grid-template-columns:1fr;height:auto}
-  .steps{max-height:180px;border-right:0;border-bottom:1px solid var(--line)}
+  .sider{border-right:0;border-bottom:1px solid var(--ant-split)}
+  .cases{grid-template-columns:1fr 1fr}
+  .menu{max-height:240px}
   .center{height:auto}
+  .crumb{height:auto;min-height:44px;padding:8px 16px}
+  .bc{white-space:normal;flex-wrap:wrap;row-gap:2px}
+  .board{display:none}
   .vp{height:420px;flex:none}
+  .guide{max-height:none;padding:16px}
   .panel{border-left:0;border-top:1px solid var(--line)}
-  .top{flex-wrap:wrap;height:auto;padding:8px 16px}
   .eggs{grid-template-columns:1fr}
   .nv.show{grid-template-columns:1fr;height:auto}
-  .nlist{max-height:180px;border-right:0}
+  .nlist{max-height:240px;border-right:0;border-bottom:1px solid var(--ant-split)}
+  .ninfo{border-right:0}
   .dvp{height:340px;flex:none}
+}
+@media (max-width:560px){
+  .prog{display:none}
+  .brand b{font-size:15px}
+  .brand{flex-basis:calc(100% - 44px)}
+  .hdr .btn{flex:1}
+  .legend{display:none}
+  .dbar span:first-child{white-space:nowrap}
+  .dbar .muted{display:none}
+  .dbar .btn{margin-left:auto}
+  .cases{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<div class="top">
-  <div class="appicon" id="appicon">🤖</div>
-  <div>
-    <div class="apptitle" id="apptitle"></div>
-    <div class="appsub">W2D3 带做 · 界面按 Dify 1.17.1 文档 + 实测截图还原，标「待实测」的以实际界面为准</div>
-  </div>
+<header class="hdr">
+  <div class="logo" id="appicon">🤖</div>
+  <div class="brand"><b>W2D3 · Dify Chatflow 带做手册</b><small>界面按 Dify 1.17.1 还原 · 标「待实测」的以实际界面为准</small></div>
+  <nav class="topnav" id="topnav">
+    <button data-tab="nodes">节点初识</button>
+    <button data-tab="cases">Chatflow 案例</button>
+  </nav>
   <div class="grow"></div>
-  <div class="seg" id="seg">
-    <button data-v="nodes">节点初识</button>
-    <button data-v="v3">V3 路由版</button>
-    <button data-v="v4">V4 多 Agent 版</button>
-  </div>
-  <span class="prog" id="prog"></span>
+  <div class="prog"><span id="prog"></span><span class="pbar"><i id="pbar"></i></span></div>
   <button class="btn" id="prev">← 上一步</button>
   <button class="btn primary" id="next">下一步 →</button>
-</div>
+</header>
 
 <div class="main">
-  <nav class="steps" id="steps"></nav>
+  <aside class="sider">
+    <div class="sider-top" id="sidertop"></div>
+    <nav class="menu" id="steps"></nav>
+  </aside>
   <section class="center">
+    <div class="crumb"><div class="bc" id="bc"></div><div class="board" id="board"></div></div>
     <div class="vp" id="vp">
-      <div class="board" id="board"></div>
       <div class="world" id="world"><svg id="edges" width="2700" height="1100"></svg></div>
       <div class="legend"><i></i>蓝框 = 这一步要动的节点　·　点任意节点看配置　·　拖动平移</div>
       <div class="zoom">
@@ -351,14 +443,14 @@ mark{background:#FEF0C7;color:#93370D;border-radius:3px;padding:0 2px}
           <li>让主管自己决定：拆成几件事、先调谁后调谁</li>
         </ul>
         <div class="hint">提示：Dify 的 Agent 节点不能直接调用另一个 Agent，所以子 Agent 要先包成 Workflow 工具。</div>
-        <div class="q">自己测：同一句混合请求，V3、V4、主管版各答得怎么样？主管拆错、漏调了怎么办？它比路由版贵多少、慢多少？</div>
+        <div class="q">自己测：同一句混合请求，路由版、多 Agent 版、主管版各答得怎么样？主管拆错、漏调了怎么办？它比路由版贵多少、慢多少？</div>
       </div>
     </div>
     <div class="eggfoot"><span>没有标准答案，也没有教程。搭不出来也正常，搭出来就是面试时最好的故事。</span><button class="btn primary" id="eggclose">我去试试</button></div>
   </div>
 </div>
 
-<div class="toast" id="toast">已复制</div>
+<div class="toast" id="toast"></div>
 
 <script>
 /* ================= 工具函数 ================= */
@@ -370,6 +462,14 @@ const ui = t => `<span class="ui">${t}</span>`;
 const v = (n, k) => `<span class="var"><i>{x}</i>${n ? `<em>${n}</em><s>/</s>` : ''}<b>${k}</b></span>`;
 const Q = v('用户输入', 'query');
 const cb = t => `<div class="cb">${esc(t)}<button class="cp" data-cid="${reg(t)}">复制</button></div>`;
+/* Ant Design 实心图标（Alert / message 用） */
+const AI = {
+  info:'<svg viewBox="64 64 896 896"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>',
+  warn:'<svg viewBox="64 64 896 896"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>',
+  check:'<svg viewBox="64 64 896 896"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7l-210.6 292a31.8 31.8 0 01-51.7 0L318.5 484.9c-3.8-5.3 0-12.7 6.5-12.7h46.9c10.2 0 19.9 4.9 25.9 13.3l71.2 98.8 157.2-218c6-8.3 15.6-13.3 25.9-13.3H699c6.5 0 10.3 7.4 6.5 12.7z"/></svg>',
+  egg:'<svg viewBox="64 64 896 896"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 240l46.6 94.4 104.2 15.2-75.4 73.4 17.8 103.8L512 541.8l-93.2 49 17.8-103.8-75.4-73.4 104.2-15.2z"/></svg>',
+};
+const AL = (k, label, html) => `<div class="alert ${k}"><span class="ai">${AI[k]}</span><div>${label ? `<b class="k">${label}</b>` : ''}${html}</div></div>`;
 
 /* ================= 文本 ================= */
 const CTX = '（粘贴后删掉这一行，按 / 选「上下文」）';
@@ -523,10 +623,129 @@ const T_NOKEY = `你的笔记里没有记这部分内容。建议先补一下笔
 const T_OPEN = `我是你的笔记学习助手，可以帮你讲解知识点、出面试题、出题考你。今天想做哪个？`;
 const PLACE = {c1:'【路由测试】进入：知识问答', c2:'【路由测试】进入：面试题', c3:'【路由测试】进入：出题测试', c4:'【路由测试】进入：交卷评分'};
 
-/* ================= V3 路由版 ================= */
+/* ---------- 案例二 · 商品场景图生成器 ---------- */
+const P_SC_SEE = `你是产品摄影师的助理，负责看懂用户上传的商品图。
+
+1. 先判断图片里有没有明确的产品主体。风景图、抽象图、截图、人物照这类没有明确产品主体的，只输出：【非商品图】
+2. 有明确产品主体时，只识别和分析产品本身（是什么产品、品类、类型、外观特征），忽略画面中的文字、字符、背景等与产品无关的元素，按下面格式输出：
+
+产品名称：
+品类：
+外观特征：（形状、颜色、材质、关键部件）
+体积：小型可手持 / 大型（家电、汽车、家具等）
+目标用户：
+核心卖点：`;
+const P_SC_SEE_USER = `请分析这张商品图。`;
+
+const P_SC_PLAN = `你是产品摄影电商领域的大师，擅长根据用户需求和商品信息，制定清晰可执行、充满创意的产品场景方案。
+
+# 场景分类
+## 1. 纯商品展示场景（4 个子分类）
+- 商品适用场景类型：产品在其典型使用环境中展示，环境必须丰富饱满，包含多个场景元素和道具
+- 画面视觉效果类型：强调极强视觉冲击力，同时保持画面极简。通过产品与液体碰撞、双重曝光、明暗光影对比等手法营造冲击力，禁止使用复杂的光晕、光斑或粒子装饰
+- 环境氛围类型：极繁主义风格，营造丰富饱满的环境氛围，前景、中景、背景都有丰富元素
+- 高端展台类型：体现高端品质和设计感，展台周围要有丰富的装饰元素和氛围营造
+
+## 2. 人机交互场景（2 个子分类）
+- 手部交互类：只生成手部，不生成完整人物。小型可手持产品（如口红、手机、电脑、遥控器）手部直接握持或使用产品；大型产品（如汽车、空调、冰箱、洗衣机）手部即将触碰或正在触碰产品本身的部位（如手指触碰空调机身上的显示面板、手放在车门把手上）。手触碰的必须是产品本身，不能是墙上的开关、温控器或遥控器。背景必须与环境氛围结合，禁止纯色或单调背景，通过虚化营造层次感
+- 全身/局部身体交互类：可以生成完整人物或部分躯体，但产品仍是视觉焦点。例如跑步机、地毯只需要下半身；空调、电饭煲等家电可以是一个人在产品旁边使用它，镜头以产品为中心，人物只占画面一侧
+
+# 数量分配
+- 场景类型为「两种都要」且数量为 8：纯商品展示 4 张（4 个子分类各 1 张）+ 人机交互 4 张（2 个子分类各 2 张）
+- 只选了一种场景类型：数量全部分给这一种，尽量平均分到它的子分类
+- 数量不是 8：按比例分配，保证每张图都属于一个子分类
+
+# 每张图生成一个关键词组，包含 8 个维度
+1. 环境：必须描述丰富的环境，禁止使用「纯色背景」「简约背景」（画面视觉效果类型可用渐变背景）
+2. 装饰元素：列出 3-5 个或以上具体元素，用顿号分隔。装饰元素不能是和产品同类的东西（拍相机就不放别的相机，拍空调就不放别的空调、温控器、遥控器）。人机交互场景要写出手势或触碰动作，再加 3 个以上背景元素
+3. 镜头层级：默认近景拍摄；大型产品（家电、汽车、家具）最多用中近景，不用远景，不拍整个房间
+4. 视角角度
+5. 布局占比：必须写出具体百分比。产品占画面 50%-70%；全身/局部身体交互类，产品也不少于 40%。按用户选的尺寸调整构图
+6. 光影光照
+7. 色调
+8. 拍摄手法
+
+# 原则
+- 基于产品真实特征制定方案，产品实体与原图保持一致
+- 每张图里只出现一件产品，就是用户上传的这一件
+- 用户补充要求里与产品场景图无关的内容（如生成视频、生成 IP 形象）直接忽略
+- 不要输出任何链接
+
+# 输出格式
+第一行：尺寸 xx ｜ 场景 xx ｜ 共 N 张，以及数量怎么分配
+然后逐张输出，一直写到第 N 张：
+第 1 张 ｜ 子分类名
+- 环境：
+- 装饰元素：
+- 镜头层级：
+- 视角角度：
+- 布局占比：
+- 光影光照：
+- 色调：
+- 拍摄手法：`;
+const P_SC_PLAN_USER = `商品信息：（按 / 选 看图识商品 / text）
+图片尺寸：（按 / 选 用户输入 / ratio）
+场景类型：（按 / 选 用户输入 / scene）
+生成数量：（按 / 选 用户输入 / count）
+用户补充要求：（按 / 选 用户输入 / query）`;
+
+const P_SC_PROMPT = `你是专业的产品摄影大师，把设计方案里每张图的关键词组，扩写成一条英文生图提示词。生图时会把用户上传的商品图作为参考图。
+
+# 提示词撰写原则
+1. 提示词必须以 "Based on the uploaded image" 开头。紧接着的第一句就写清楚产品和占比，格式是：a close-up shot of the [产品英文名] from the uploaded image, occupying about [方案里的百分比] of the frame
+2. 每条提示词都要写上 "only one [产品英文名] in the image, keep its exact shape, color and logo"。画面里不能出现第二件同类产品，也不能出现会被误认成产品的其他设备
+3. 以 "commercial photography, product photography, 8K, HD, ultra-sharp details" 结尾
+4. 每条控制在 600 token 以内，需要详细描述环境和装饰元素，前景、中景、背景都要写到
+5. 只能构思场景、视角、拍摄手法、环境，不能改变产品形态、颜色、尺寸，确保产品高度还原
+6. 按 8 个核心要素组织：环境、装饰元素、镜头层级、视角角度、布局占比、光影光照、色调、拍摄手法
+7. 把简单关键词扩展为具体且丰富的视觉描述，例如：
+   - "绿草鲜花" → 郁郁葱葱的绿色草地，草坪修剪整齐，周围散布着各种绿叶和小红花，为现场增添生机勃勃的自然气息
+   - "河边石头" → 产品位于光滑的灰白色鹅卵石上，周围是清澈的溪流，远处是繁茂的植被和树木，清晨的薄雾弥漫在背景中
+   - "柔和自然光" → 柔和的自然光从侧面照射，在产品和周围元素上形成柔和的阴影和高光，增强场景的立体感和质感
+8. 主体必须超高清，即便是运动模糊，模糊的也是背景或装饰元素，产品本身始终保持清晰
+9. 严禁白色背景、严禁画面白边：写明具体的背景颜色、渐变色或环境场景，并加上 "no white borders, no white edges, full-frame composition, the scene extends to all four edges of the image"
+10. 产品是绝对主角：占比按方案里的百分比写，任何情况下都不低于 40%，在中心或视觉焦点位置；装饰元素遮挡产品不超过 1/4
+11. 纯商品展示场景加上 "no characters, no words"；人机交互场景的人物和手部要自然真实、不能畸形、符合物理规律，手触碰的必须是产品本身
+12. 画面视觉效果类型：极简但冲击力强，用液体、光影、明暗对比、超广角、超透视营造冲击力，禁止复杂光晕、光斑、粒子；环境氛围类型：走极繁主义路线，大量描述环境元素和氛围细节
+
+# 示例（手机 · 商品适用场景类型）
+关键词组：售卖店充电座 ｜ 简约陈列 ｜ 浅景深效果 ｜ 平视角度 ｜ 居中构图、产品占 70% ｜ 柔和顶部光照 ｜ 暖色调 ｜ 极简留白
+生成提示词：Based on the uploaded image, a close-up shot of the smartphone from the uploaded image, occupying about 70% of the frame, displayed on elegant wooden charging stand in modern electronics retail store, small product description card placed beside the stand, clean store display shelves blurred in background, captured at eye-level angle with central composition, soft overhead spotlight creating warm shopping atmosphere, shallow depth of field effect, product in sharp focus, warm color palette with minimalist negative space, only one smartphone in the image, keep its exact shape, color and logo, no white borders, no white edges, full-frame composition, the scene extends to all four edges of the image, no characters, no words, pure product photography, commercial photography, product photography, 8K, HD, ultra-sharp details.
+
+# 输出
+设计方案里有几张图，就输出几条提示词，顺序和方案一致，每条对应一张图。`;
+const P_SC_PROMPT_USER = `商品信息：（按 / 选 看图识商品 / text）
+
+设计方案：
+（按 / 选 出设计方案 / text）
+
+图片尺寸：（按 / 选 用户输入 / ratio）`;
+const SC_SCHEMA = `{
+  "type": "object",
+  "properties": {
+    "prompts": {
+      "type": "array",
+      "description": "每张图一条英文生图提示词，顺序与设计方案一致",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["prompts"]
+}`;
+const T_SC_BAD = `这张图里没有明确的商品主体。商品场景图生成器只能根据商品图生成场景图，请换一张包含明确商品的图片再试。`;
+const T_SC_NONE = `这次一张图都没有生成出来，可能是生图模型繁忙，或者提示词被安全规则拦截了。请点「重新生成」再试一次；如果还是不行，打开右上角的运行日志，看「逐张生图」里的报错。`;
+const SC_FIELDS = [
+  {k:'product_image', t:'单文件', label:'商品图', set:'支持的文件类型只勾「图片」；上传方式勾「本地上传」和「URL」；必填'},
+  {k:'ratio', t:'下拉选项', label:'图片尺寸', set:'选项依次填 1:1、3:4、4:3、2:3、3:2、16:9、9:16；默认值 1:1；必填'},
+  {k:'scene', t:'下拉选项', label:'场景类型', set:'选项依次填 两种都要、纯商品展示场景、人机交互场景；默认值 两种都要；必填'},
+  {k:'count', t:'数字', label:'生成数量', set:'默认值 8；必填'},
+];
+const SC_RATIOS = '1:1\n3:4\n4:3\n2:3\n3:2\n16:9\n9:16';
+const SC_SCENES = '两种都要\n纯商品展示场景\n人机交互场景';
+
+/* ================= 案例一 · 路由版 ================= */
 const V3 = {
-  id:'v3', title:'笔记学习助手 V3（路由版）· 搭建手册',
-  boards:{main:'Chatflow · 笔记学习助手 V3（路由版）'},
+  id:'v3', title:'笔记学习助手（路由版）',
+  boards:{main:'Chatflow · 笔记学习助手（路由版）'},
   steps:[
   {id:'s0', r:'总览', no:'0', t:'终局长这样', focus:[], fit:'all',
    a:[
@@ -534,13 +753,13 @@ const V3 = {
     `<b>知识问答</b>最长：笔记够 → 直接回复；笔记不够（模型输出暗号【笔记未覆盖】）→ 博查联网 → 联网回答；博查挂了 → 走失败分支兜底。`,
     `<b>面试题 / 出题测试 / 交卷评分</b>：各一个 LLM + 一个直接回复。`,
     `<b>其他</b>：一句写死的回复，不调模型。`,
-    `点画布上任意节点，右边就是它的完整配置；拖动画布平移，右下角缩放。键盘 <kbd>←</kbd> <kbd>→</kbd> 切步骤。顶部可以切到 <b>V4 多 Agent 版</b>。`],
+    `点画布上任意节点，右边就是它的完整配置；拖动画布平移，右下角缩放。键盘 <kbd>←</kbd> <kbd>→</kbd> 切步骤。`],
    tip:'只有一个知识库，就只放一个知识检索节点，而且放在分诊前面：每句话先翻一次笔记，后面哪条分支要用，就在 LLM 的「上下文」里引用它的 result。'},
 
   {id:'s1_1', r:'第 1 轮 · 分诊台', no:'1.1', t:'创建 Chatflow 应用', focus:['start'],
    a:[
     `顶部 ${ui('工作室')} → ${ui('创建空白应用')} → 应用类型选 ${ui('Chatflow')}`,
-    `名称填「笔记学习助手 V3（路由版）」→ ${ui('创建')}`,
+    `名称填「笔记学习助手（路由版）」→ ${ui('创建')}`,
     `画布上如果默认带了 LLM 和直接回复，先删掉（选中按 <kbd>Delete</kbd>），只留 ${ui('用户输入')}`],
    tip:'Chatflow 没有「选开始方式」这一步——它永远由用户发消息启动。用户说的那句话，就是「用户输入」里的 query。'},
 
@@ -699,7 +918,7 @@ const V3 = {
       <tr><td>成本</td><td>「其他」0 token；该查才查</td><td>每一步都要模型想一下</td></tr>
       <tr><td>排查</td><td>每一步看得清</td><td>只能看它的思考过程猜</td></tr>
       <tr><td>灵活</td><td>混合请求接不住</td><td>能接住</td></tr></table>`],
-   check:'收束语：骨架用流程写死，个别需要灵活判断的环节再放一个 Agent 节点。能写死的别交给模型，写不死的才交给 Agent。→ 顶部切到「V4 多 Agent 版」继续。'},
+   check:'收束语：骨架用流程写死，个别需要灵活判断的环节再放一个 Agent 节点。能写死的别交给模型，写不死的才交给 Agent。→ 下一个：案例二 · 商品场景图生成器。做得快的，可以先在左侧切到「多 Agent 版 · 进阶」自己试。'},
   ],
   nodes:[
     {id:'start',     type:'start', title:'用户输入',         x:0,    y:390, w:200, from:'s1_1'},
@@ -755,18 +974,18 @@ const V3 = {
   ],
 };
 
-/* ================= V4 多 Agent 版 ================= */
+/* ================= 案例一 · 多 Agent 版（进阶） ================= */
 const V4 = {
-  id:'v4', title:'笔记学习助手 V4（多 Agent 版）· 搭建手册',
-  boards:{main:'Chatflow · 笔记学习助手 V4（多 Agent 版）', tool:'Workflow · 查课程笔记（一个小应用，发布成工具）'},
+  id:'v4', title:'笔记学习助手（多 Agent 版）',
+  boards:{main:'Chatflow · 笔记学习助手（多 Agent 版）', tool:'Workflow · 查课程笔记（一个小应用，发布成工具）'},
   steps:[
   {id:'t0', r:'总览', no:'0', t:'终局长这样', focus:[], fit:'all',
    a:[
-    `骨架和 V3 一模一样：${ui('查笔记')} → ${ui('分模式')} → 5 个出口。`,
-    `只换两条分支：<b>知识问答 → 答疑 Agent</b>；<b>面试题 → 面试官 Agent</b>。V3 里手写的「笔记回答 → 条件分支 → 博查 → 联网回答」，整串交给答疑 Agent 自己决定。`,
+    `骨架和路由版一模一样：${ui('查笔记')} → ${ui('分模式')} → 5 个出口。`,
+    `只换两条分支：<b>知识问答 → 答疑 Agent</b>；<b>面试题 → 面试官 Agent</b>。路由版里手写的「笔记回答 → 条件分支 → 博查 → 联网回答」，整串交给答疑 Agent 自己决定。`,
     `<b>出题 / 评分 / 其他</b>不动——它们不需要自己拿主意，继续写死。`,
     `两个 Agent 查笔记靠一个工具「查课程笔记」：它是一个 3 节点的小 Workflow，发布成工具后挂到 Agent 上（第 1 轮先做它）。`],
-   tip:'怎么判断是不是真多 Agent：① 至少两个 Agent 节点；② 每个 Agent 有自己的工具，自己决定调不调、调几次；③ 它们之间有分工（这里是路由阵型）。V3 一条都不满足，V4 三条都满足。'},
+   tip:'怎么判断是不是真多 Agent：① 至少两个 Agent 节点；② 每个 Agent 有自己的工具，自己决定调不调、调几次；③ 它们之间有分工（这里是路由阵型）。路由版一条都不满足，多 Agent 版三条都满足。'},
 
   {id:'t1_1', r:'第 1 轮 · 做一个「查课程笔记」工具', no:'1.1', t:'新建一个 Workflow 应用', board:'tool', focus:['w_start'],
    a:[
@@ -805,19 +1024,19 @@ const V4 = {
    tip:'工具描述就是 W2D2 需求文档 ⑤ 段「工具清单：什么时候用」——Agent 靠这段话决定要不要调它。写不清，Agent 就不会调。',
    warn:'发布为工具的弹窗字段名以实际界面为准（待实测）。工具调用名称如果改了，两个 Agent 的指令里 search_course_notes 也要一起改。'},
 
-  {id:'t2_1', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.1', t:'复制 V3 应用', focus:[], fit:'all', quiet:true,
+  {id:'t2_1', r:'第 2 轮 · 复制路由版，换上两个 Agent', no:'2.1', t:'复制路由版应用', focus:[], fit:'all', quiet:true,
    a:[
-    `${ui('工作室')} → 找到「笔记学习助手 V3（路由版）」卡片 → ${ui('···')} → ${ui('复制')}`,
-    `新应用改名「笔记学习助手 V4（多 Agent 版）」，打开编排`],
-   tip:'V3 原样留着，最后要拿来对比。'},
+    `${ui('工作室')} → 找到「笔记学习助手（路由版）」卡片 → ${ui('···')} → ${ui('复制')}`,
+    `新应用改名「笔记学习助手（多 Agent 版）」，打开编排`],
+   tip:'路由版原样留着，最后要拿来对比。'},
 
-  {id:'t2_2', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.2', t:'删掉知识问答那串手写流程', focus:['llm_note','ifn','tool','llm_web','a6','a7'], fitIds:['cls','llm_note','ifn','tool','llm_web','a6','a7','a1'],
+  {id:'t2_2', r:'第 2 轮 · 复制路由版，换上两个 Agent', no:'2.2', t:'删掉知识问答那串手写流程', focus:['llm_note','ifn','tool','llm_web','a6','a7'], fitIds:['cls','llm_note','ifn','tool','llm_web','a6','a7','a1'],
    a:[
     `删掉 6 个节点：笔记回答、笔记够不够、Bocha Web Search、联网回答、直接回复 6、直接回复 7（逐个选中按 <kbd>Delete</kbd>）`,
     `<b>保留 ${ui('直接回复')}</b>——它等下接答疑 Agent 的回答`],
-   tip:'这 6 个节点就是你在 V3 里手写的「查笔记 → 判断 → 联网 → 兜底」。下一步，这整串交给一个 Agent 自己决定。'},
+   tip:'这 6 个节点就是你在路由版里手写的「查笔记 → 判断 → 联网 → 兜底」。下一步，这整串交给一个 Agent 自己决定。'},
 
-  {id:'t2_3', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.3', t:'加「答疑 Agent」', focus:['ag_qa','a1'], sel:'ag_qa',
+  {id:'t2_3', r:'第 2 轮 · 复制路由版，换上两个 Agent', no:'2.3', t:'加「答疑 Agent」', focus:['ag_qa','a1'], sel:'ag_qa',
    a:[
     `「知识问答」出口的 ${ui('+')} → ${ui('Agent')}，改名「答疑 Agent」`,
     `从答疑 Agent 右侧圆点拖一根线到 ${ui('直接回复')}`,
@@ -825,14 +1044,14 @@ const V4 = {
     `点 ${ui('直接回复')}：内容换成 ${v('答疑 Agent','text')}`],
    warn:`<b>待实测：</b>① 策略列表是空的 → ${ui('插件')} → 市场里搜「Agent 策略」装 Dify 官方的那个；② 点开 Agent 节点看到的是「从空白开始 / 邀请已有 Agent」（新版 Agent）→ 选「从空白开始」，<b>提示词</b>里粘指令、<b>工具</b>照加，<b>Agent 任务</b>里写「回答：」再按 / 选 query。`},
 
-  {id:'t2_4', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.4', t:'把「出面试题」换成「面试官 Agent」', focus:['llm_iv','ag_iv','a2'], sel:'ag_iv',
+  {id:'t2_4', r:'第 2 轮 · 复制路由版，换上两个 Agent', no:'2.4', t:'把「出面试题」换成「面试官 Agent」', focus:['llm_iv','ag_iv','a2'], sel:'ag_iv',
    a:[
     `选中「出面试题」LLM → <kbd>Delete</kbd>`,
     `「面试题」出口的 ${ui('+')} → ${ui('Agent')}，改名「面试官 Agent」，再拖线到 ${ui('直接回复 2')}`,
     `配置和答疑 Agent 一样（同样两个工具），只是<b>指令换成面试官的</b>（右侧面板）`,
     `${ui('直接回复 2')} 内容换成 ${v('面试官 Agent','text')}`]},
 
-  {id:'t2_5', r:'第 2 轮 · 复制 V3，换上两个 Agent', no:'2.5', t:'其余不动，检查一遍', focus:['kb','llm_quiz','llm_grade','a5'], fit:'all',
+  {id:'t2_5', r:'第 2 轮 · 复制路由版，换上两个 Agent', no:'2.5', t:'其余不动，检查一遍', focus:['kb','llm_quiz','llm_grade','a5'], fit:'all',
    a:[
     `${ui('出题')}、${ui('评分')}、${ui('直接回复 5')} 保持原样——它们不需要自己拿主意`,
     `${ui('查笔记')} 也留着：出题和评分还在用它的 result；两个 Agent 用的是自己的工具`,
@@ -846,33 +1065,33 @@ const V4 = {
       <tr><td>什么是 A2A 协议（笔记里没记的）</td><td>先查笔记 → 没有 → 调博查 → 标【联网补充】+ 链接</td></tr>
       <tr><td>MCP 是谁提出的？（W2D2 故意在笔记里写错的那条）</td><td>查笔记 → 发现可疑 → 调博查核实 → 输出【笔记可能有误】</td></tr></table>`,
     `看过程：展开回复上方的运行过程 → 点 ${ui('答疑 Agent')} → 看它每一轮调了什么工具、查了什么关键词`],
-   tip:'第 3 句是 V3 做不到的：V3 的纠错只能靠模型自觉，没法真去查证；Agent 能自己决定「这条可疑，我去搜一下」。这就是这一环值得交给 Agent 的理由。'},
+   tip:'第 3 句是路由版做不到的：路由版的纠错只能靠模型自觉，没法真去查证；Agent 能自己决定「这条可疑，我去搜一下」。这就是这一环值得交给 Agent 的理由。'},
 
   {id:'t3_2', r:'第 3 轮 · 测试与对比', no:'3.2', t:'测面试官 Agent', focus:['ag_iv'], fitIds:['cls','ag_iv','a2'],
    a:[
     `「给我 Agent 相关的面试题」→ 看它是不是把 Agent 拆成几个小点、查了几次笔记`,
     `「大厂 AI 产品经理面试会怎么问 RAG？」→ 应该去联网找真实面经，题目标【真实面经】+ 链接`]},
 
-  {id:'t3_3', r:'第 3 轮 · 测试与对比', no:'3.3', t:'V3 vs V4 对比', focus:[], fit:'all',
+  {id:'t3_3', r:'第 3 轮 · 测试与对比', no:'3.3', t:'路由版 vs 多 Agent 版', focus:[], fit:'all',
    a:[
-    `V3、V4 两个标签页，同样 4 句各发一遍，看运行过程填表：`,
-    `<table class="t"><tr><th>#</th><th>发送</th><th>V3：走了哪条路</th><th>V4：Agent 调了哪些工具、几轮</th><th>谁答得好 / 谁更快更省</th></tr>
+    `路由版、多 Agent 版两个标签页，同样 4 句各发一遍，看运行过程填表：`,
+    `<table class="t"><tr><th>#</th><th>发送</th><th>路由版：走了哪条路</th><th>多 Agent 版：Agent 调了哪些工具、几轮</th><th>谁答得好 / 谁更快更省</th></tr>
       <tr><td>1</td><td>System Prompt 和 User Prompt 有什么区别？</td><td></td><td></td><td></td></tr>
       <tr><td>2</td><td>什么是 A2A 协议</td><td></td><td></td><td></td></tr>
       <tr><td>3</td><td>MCP 是谁提出的？（笔记写错的那条）</td><td></td><td></td><td></td></tr>
       <tr><td>4</td><td>给我 Agent 相关的面试题</td><td></td><td></td><td></td></tr></table>`,
-    `<table class="t"><tr><th></th><th>V3 写死路由</th><th>V4 路由 + 多 Agent</th></tr>
+    `<table class="t"><tr><th></th><th>路由版</th><th>多 Agent 版</th></tr>
       <tr><td>稳定</td><td>高，每次同一条路</td><td>骨架稳，Agent 分支内部会有波动</td></tr>
       <tr><td>纠错查证</td><td>做不到</td><td>能自己去查</td></tr>
       <tr><td>成本 / 速度</td><td>低 / 快</td><td>Agent 可能调好几轮，更贵更慢</td></tr>
       <tr><td>排查</td><td>每一步清楚</td><td>要看 Agent 每一轮的工具调用</td></tr>
       <tr><td>混合请求</td><td>接不住</td><td><b>还是接不住</b>——分类器只挑一条路</td></tr></table>`],
-   check:'结论：写死写不下去的环节（要反复查证、要自己决定查什么），才值得升级成 Agent。V2 单 Agent → V3 写死路由 → V4 路由 + 多 Agent，正好是 W2D2 光谱的后三格。'},
+   check:'结论：写死写不下去的环节（要反复查证、要自己决定查什么），才值得升级成 Agent。昨天的单 Agent → 路由版写死 → 路由 + 多 Agent，正好是 W2D2 光谱的后三格。'},
 
   {id:'t3_4', r:'第 3 轮 · 测试与对比', no:'3.4', t:'发布', focus:[], fit:'all',
    a:[
     `右上 ${ui('发布')} → ${ui('发布更新')} → ${ui('打开 Web 应用')}，链接发群里`,
-    `「混合请求接不住」怎么办？V4 也没解决……`],
+    `「混合请求接不住」怎么办？多 Agent 版也没解决……`],
    egg:'做完了？左上角那个小机器人，好像藏着点什么……（连点三下）'},
   ],
   nodes:[
@@ -880,7 +1099,7 @@ const V4 = {
     {id:'w_start', type:'start', title:'用户输入', x:0,   y:200, w:210, from:'t1_1', board:'tool', fieldsFrom:'t1_2'},
     {id:'w_kb',    type:'kb',    title:'知识检索', x:290, y:200, w:230, from:'t1_3', board:'tool'},
     {id:'w_out',   type:'out',   title:'输出',     x:600, y:200, w:230, from:'t1_4', board:'tool'},
-    /* Chatflow 主画布（从 V3 复制而来） */
+    /* Chatflow 主画布（从路由版复制而来） */
     {id:'start',     type:'start', title:'用户输入',         x:0,    y:390, w:200, from:'t2_1'},
     {id:'kb',        type:'kb',    title:'查笔记',           x:270,  y:390, w:220, from:'t2_1', v4note:true},
     {id:'cls',       type:'cls',   title:'分模式',           x:560,  y:330, w:260, from:'t2_1'},
@@ -936,8 +1155,209 @@ const V4 = {
   ],
 };
 
-const PROMPTS = {P_NOTE, P_WEB, P_IV, P_QUIZ, P_GRADE, P_AG_QA, P_AG_IV};
-const VERSIONS = {v3:V3, v4:V4};
+/* ================= 案例二 · 商品场景图生成器 ================= */
+const SC_MODEL = 'gemini-2.5-flash';
+const SCENE = {
+  id:'scene', title:'商品场景图生成器',
+  boards:{main:'Chatflow · 商品场景图生成器'},
+  steps:[
+  {id:'c0', r:'总览', no:'0', t:'终局长这样', focus:[], fit:'all',
+   a:[
+    `用户在表单里交一张商品图，选好尺寸、场景、数量 → ${ui('看图识商品')} → 不是商品图就请他换图 → ${ui('出设计方案')}（每张图一组关键词）→ ${ui('写生图提示词')}（一张图一条）→ ${ui('逐张生图')}（4 张一起跑）→ ${ui('出图')}。`,
+    `这是一个真实上线过的产品：原来是 1 个主 Agent 带 2 个子 Agent（出方案、生图），挂了一串工具。今天用 Chatflow 把它复现出来，原来的工具到这里变成了这样：`,
+    `<table class="t"><tr><th>原 Agent 的工具</th><th>它干什么</th><th>在 Chatflow 里</th></tr>
+      <tr><td>看图 caption_image</td><td>认出是什么商品</td><td>LLM 打开「视觉」</td></tr>
+      <tr><td>问人 ask_human</td><td>缺尺寸、场景时反问用户</td><td>用户输入表单，一开始就填好</td></tr>
+      <tr><td>抠图 image_segmentation</td><td>把商品抠成白底</td><td>不用了：改图模型能直接用原图</td></tr>
+      <tr><td>列计划 planning</td><td>模型先想好分几步</td><td><b>不需要</b>：画布上的流程就是计划</td></tr>
+      <tr><td>交接 handoff_to_executor</td><td>把活交给子 Agent</td><td><b>不需要</b>：连线就是交接</td></tr>
+      <tr><td>并行 parallel_tool_invoker</td><td>一次出好几张</td><td>迭代节点 + 并行模式</td></tr>
+      <tr><td>结束 agent_end_tool</td><td>告诉系统做完了</td><td><b>不需要</b>：走到直接回复就结束</td></tr>
+      <tr><td>生图 gemini_2_5_flash_image</td><td>照着商品图画场景图</td><td>工具「编辑图像」，同一个模型</td></tr></table>`,
+    `点画布上任意节点，右边是它的完整配置；键盘 <kbd>←</kbd> <kbd>→</kbd> 切步骤。`],
+   tip:'列计划、交接、结束这几个工具，是 Agent 用来管自己的。流程一旦写死，它们就用不上了——这就是 Chatflow 比 Agent 稳、也比 Agent 省的地方。'},
+
+  {id:'c1_1', r:'第 1 轮 · 准备', no:'1.1', t:'装 AIHubMix 插件、授权', focus:[], fit:'all', panel:'aihub',
+   a:[
+    `顶部 ${ui('插件')} → ${ui('探索 Marketplace')} → 搜 <code>AIHubMix</code>，装这两个（作者都是 langgenius），已经装过的跳过：<b>AIHubMix 图片生成</b>（工具，用来出图）、<b>Aihubmix</b>（模型供应商，看图、写方案的 LLM 也走它）`,
+    `准备 API Key：打开 <code>console.aihubmix.com/token</code>，用已有的 Key，或者新建一个`,
+    `顶部 ${ui('工具')} → ${ui('AIHubMix 图片生成')} → ${ui('去授权')}：${ui('API 密钥')} 填 Key，${ui('API 接口地址')} 保持默认`,
+    `右上头像 → ${ui('设置')} → ${ui('模型供应商')} → ${ui('Aihubmix')} → 填同一个 Key`],
+   tip:'一个 Key 管两件事：LLM 节点用的对话模型，和生图工具用的图像模型，都走 AIHubMix，只配一次。',
+   warn:'出图按张计费：gemini-2.5-flash-image 每张约 0.04 美元，8 张约 0.3 美元。调试时数量先填 2，最后再完整跑一次 8 张。'},
+
+  {id:'c1_2', r:'第 1 轮 · 准备', no:'1.2', t:'新建 Chatflow 应用', focus:['sc_start'],
+   a:[
+    `${ui('工作室')} → ${ui('创建空白应用')} → 类型选 ${ui('Chatflow')}`,
+    `名称填「商品场景图生成器」→ ${ui('创建')}`,
+    `画布上默认带的 LLM 和直接回复先删掉，只留 ${ui('用户输入')}`],
+   tip:'这个案例一轮就能出完图，用 Workflow 也能做。选 Chatflow，是给以后「第 3 张换成户外」这种追问留个口子。'},
+
+  {id:'c1_3', r:'第 1 轮 · 准备', no:'1.3', t:'用户输入：加 4 个表单字段', focus:['sc_start'], chg:['sc_start'],
+   a:[
+    `点 ${ui('用户输入')} → ${ui('输入字段')} 旁的 ${ui('+')}，按下表加 4 个字段：`,
+    `<table class="t"><tr><th>变量名</th><th>显示名称</th><th>字段类型</th><th>设置</th></tr>
+      ${SC_FIELDS.map(f => `<tr><td><code>${f.k}</code></td><td>${f.label}</td><td>${f.t}</td><td>${f.set}</td></tr>`).join('')}</table>`,
+    `下拉选项要一项一项添加；数字的默认值填 8`],
+   tip:'原来的 Agent 缺尺寸、场景时要反问用户，一来一回好几轮。表单一次问完，流程里就不用再写「缺了怎么办」。Chatflow 也能加字段：用户发第一句话之前，先把材料交齐。'},
+
+  {id:'c2_1', r:'第 2 轮 · 看懂商品图', no:'2.1', t:'LLM「看图识商品」（打开视觉）', focus:['sc_see'], sel:'sc_see',
+   a:[
+    `${ui('用户输入')} 右侧 ${ui('+')} → ${ui('LLM')}，改名「看图识商品」`,
+    `模型选 Aihubmix 下的 <code>${SC_MODEL}</code>（能看图的模型才有视觉开关）`,
+    `打开 ${ui('视觉')} → 变量选 ${v('用户输入', 'product_image')} → 分辨率选 ${ui('高')}`,
+    `SYSTEM 粘贴提示词；${ui('添加消息')} 新增一条 USER，粘贴「请分析这张商品图。」（右侧面板都有复制）`],
+   tip:'提示词让模型先判断「是不是商品图」，不是就只输出暗号【非商品图】——和案例一的【笔记未覆盖】是同一招：模型负责判断，流程负责判断完怎么走。'},
+
+  {id:'c2_2', r:'第 2 轮 · 看懂商品图', no:'2.2', t:'条件分支「是不是商品图」', focus:['sc_ifp', 'sc_bad', 'sc_out'], sel:'sc_ifp',
+   a:[
+    `「看图识商品」右侧 ${ui('+')} → ${ui('条件分支')}，改名「是不是商品图」`,
+    `IF 右侧 ${ui('+ 添加条件')} → 选 ${v('看图识商品', 'text')} → 条件选 ${ui('包含')} → 值填 <code>【非商品图】</code>`,
+    `IF 右侧 ${ui('+')} → ${ui('直接回复')}，改名「请换图」，内容写死（点节点看右侧面板，有复制）`,
+    `ELSE 右侧 ${ui('+')} → ${ui('直接回复')}，改名「出图」，内容先按 <kbd>/</kbd> 选 ${v('看图识商品', 'text')}`],
+   tip:'先通水电再贴瓷砖：「出图」现在只回识别结果，是临时的。后面每加一个节点，就插在它前面，每一轮都能单独测。'},
+
+  {id:'c2_3', r:'第 2 轮 · 看懂商品图', no:'2.3', t:'测：风景图被拦下，商品图认得对', focus:[], fitIds:['sc_start', 'sc_see', 'sc_ifp', 'sc_bad', 'sc_out'],
+   a:[
+    `右上 ${ui('预览')}：对话框上方会出现表单。上传一张<b>风景照</b>，尺寸、场景、数量随便选，在对话框里发「开始生成」→ 应该回「请换图」那句话`,
+    `点 ${ui('↻')} 开一个新对话，换一张<b>商品图</b>再发 → 应该回一段识别结果：产品名称、品类、外观特征……`,
+    `点回复上方那一栏（${ui('出图 ›')}）展开，能看到这次走过的每个节点`],
+   tip:'商品图找白底或背景干净的商品主图，电商详情页、品牌官网都行。表单里可以本地上传，也可以直接粘图片链接。',
+   check:'两张图都走对 = 第 2 轮完成。'},
+
+  {id:'c3_1', r:'第 3 轮 · 出方案、写提示词', no:'3.1', t:'LLM「出设计方案」', focus:['sc_plan', 'sc_out'], sel:'sc_plan',
+   a:[
+    `鼠标移到「是不是商品图」的 ELSE 和「出图」之间的<b>连线</b>上 → ${ui('+')} → ${ui('LLM')}，改名「出设计方案」`,
+    `模型同上；SYSTEM 粘贴提示词`,
+    `${ui('添加消息')} 新增 USER，粘贴那 5 行，再用 <kbd>/</kbd> 把 5 处黄字换成对应变量`,
+    `点「出图」：内容换成 ${v('出设计方案', 'text')}`],
+   tip:'提示词里写死了 2 大类 6 个子分类、每张图 8 个维度、默认怎么分配数量——这是原产品里一个子 Agent 的全部工作。在 Chatflow 里，它就是一个 LLM 节点。'},
+
+  {id:'c3_2', r:'第 3 轮 · 出方案、写提示词', no:'3.2', t:'LLM「写生图提示词」+ 结构化输出', focus:['sc_prompt', 'sc_out'], sel:'sc_prompt',
+   a:[
+    `「出设计方案」和「出图」之间的连线 → ${ui('+')} → ${ui('LLM')}，改名「写生图提示词」`,
+    `SYSTEM 粘贴提示词；USER 粘贴那几行，用 <kbd>/</kbd> 换掉 3 处黄字`,
+    `面板下方 ${ui('输出变量')} 旁打开 ${ui('结构化输出')} → 点开编辑 → ${ui('从 JSON 导入')} → 粘贴 Schema（右侧面板有复制）`,
+    `保存后，输出变量里会多出 ${v('写生图提示词', 'structured_output')} 下面的 <code>prompts</code>（Array[String]）`],
+   tip:'为什么要结构化输出：下一步要「一条提示词出一张图」，迭代节点只认列表。普通输出是一大段文字；结构化输出直接给一个列表，有几条就跑几遍。'},
+
+  {id:'c3_3', r:'第 3 轮 · 出方案、写提示词', no:'3.3', t:'测：方案和提示词的条数对不对', focus:[], fitIds:['sc_ifp', 'sc_plan', 'sc_prompt', 'sc_out'],
+   a:[
+    `预览 → 开新对话，上传商品图，场景选「两种都要」，<b>数量填 2</b>，发「开始生成」`,
+    `回复里是设计方案：第一行写着共 2 张，下面 2 组关键词，每组 8 个维度`,
+    `展开运行过程 → 点「写生图提示词」→ 看输出：<code>prompts</code> 里正好 2 条英文提示词，开头都是 Based on the uploaded image`],
+   check:'方案张数 = 你填的数量 = prompts 条数，三个数对得上，才进第 4 轮。'},
+
+  {id:'c4_1', r:'第 4 轮 · 并行出图', no:'4.1', t:'迭代「逐张生图」', focus:['sc_iter', 'sc_out'], sel:'sc_iter',
+   a:[
+    `「写生图提示词」和「出图」之间的连线 → ${ui('+')} → ${ui('迭代')}，改名「逐张生图」`,
+    `${ui('输入')} 选 ${v('写生图提示词', 'structured_output / prompts')}`,
+    `打开 ${ui('并行模式')}，${ui('最大并行度')} 填 <code>4</code>`,
+    `${ui('错误响应方法')} 选 ${ui('移除错误输出')}；打开 ${ui('扁平化输出')}`],
+   tip:'迭代 = 对列表里的每一项做同样的事。8 条提示词，就把框里的节点跑 8 遍；开了并行，4 张一起出。原产品里专门有一个并行工具干这件事。'},
+
+  {id:'c4_2', r:'第 4 轮 · 并行出图', no:'4.2', t:'迭代里放「编辑图像」', focus:['sc_img'], sel:'sc_img', fitIds:['sc_prompt', 'sc_iter', 'sc_img', 'sc_out'],
+   a:[
+    `在迭代框<b>里面</b>点 ${ui('+')} → ${ui('工具')} → ${ui('AIHubMix 图片生成')} → ${ui('编辑图像')}`,
+    `模型选 <code>gemini-2.5-flash-image</code>（下拉里没有就选 <code>qwen-image-3.0</code>）`,
+    `提示词：按 <kbd>/</kbd> 选 ${v('逐张生图', 'item')}（当前这一条）；图片选 ${v('用户输入', 'product_image')}`,
+    `下面 ${ui('设置')} 里的 ${ui('宽高比')}：按 <kbd>/</kbd> 选 ${v('用户输入', 'ratio')}；其他留空`,
+    `回到「逐张生图」：${ui('输出变量')} 选 ${v('编辑图像', 'files')}`],
+   tip:'「编辑图像」必须带一张原图：每张都照着你的商品画，外观、logo 才不容易走样。原产品用的也是这个模型的图生图。'},
+
+  {id:'c4_3', r:'第 4 轮 · 并行出图', no:'4.3', t:'「出图」改成方案 + 图片', focus:['sc_out'], sel:'sc_out',
+   a:[
+    `点「出图」：删掉原来的内容，粘贴右侧面板里的模板`,
+    `用 <kbd>/</kbd> 把两处黄字换成 ${v('出设计方案', 'text')} 和 ${v('逐张生图', 'output')}`],
+   tip:'迭代的输出是一组图片文件。直接回复里放这个变量，图片会直接显示在对话里。'},
+
+  {id:'c4_4', r:'第 4 轮 · 并行出图', no:'4.4', t:'条件分支「出图了吗」', focus:['sc_ifimg', 'sc_none', 'sc_out'], sel:'sc_ifimg',
+   a:[
+    `「逐张生图」和「出图」之间的连线 → ${ui('+')} → ${ui('条件分支')}，改名「出图了吗」`,
+    `IF：${ui('+ 添加条件')} → 选 ${v('逐张生图', 'output')} → 条件选 ${ui('为空')}`,
+    `IF 右侧 ${ui('+')} → ${ui('直接回复')}，改名「没出图」，内容写死（右侧面板有复制）`,
+    `<b>检查连线：「出图」必须接在 ELSE 上。</b>连到 IF 上了就选中那根线按 <kbd>Delete</kbd>，再从 ELSE 右侧的圆点拖一根线到「出图」`],
+   tip:'迭代设了「移除错误输出」：失败的那张会被丢掉，其余照常出。可如果全都失败，对话里只剩一句空的「生成结果：」，用户不知道发生了什么。这个分支就是给「一张都没出来」兜底。',
+   warn:'这一步的「为空」还没实测过：条件列表里找不到「为空」的话，先跳过这一步，不影响出图。'},
+
+  {id:'c4_5', r:'第 4 轮 · 并行出图', no:'4.5', t:'测 4 组', focus:[], fit:'all',
+   a:[
+    `每组测试前点 ${ui('↻')} 开新对话，在表单里重新选：`,
+    `<table class="t"><tr><th>#</th><th>商品图</th><th>尺寸</th><th>场景</th><th>数量</th><th>应该看到</th></tr>
+      <tr><td>1</td><td>小商品（相机、口红、耳机）</td><td>1:1</td><td>两种都要</td><td>2</td><td>2 张方图</td></tr>
+      <tr><td>2</td><td>同一张</td><td>3:4</td><td>纯商品展示场景</td><td>4</td><td>4 张竖图，4 个子分类各一张</td></tr>
+      <tr><td>3</td><td>大件（空调、冰箱、汽车）</td><td>16:9</td><td>人机交互场景</td><td>4</td><td>4 张横图，手碰的是产品本身</td></tr>
+      <tr><td>4</td><td>任意商品</td><td>1:1</td><td>两种都要</td><td>8</td><td>8 张都出来；运行过程里看迭代花了多久</td></tr></table>`,
+    `每张图过 4 个问题：产品占画面 1/3 以上吗？产品被换成别的东西了吗？画面里有第二件同类产品吗？四边有白边吗？`],
+   check:'比例对、张数对、产品没走样 = 案例二完成。哪一项不对，就回到对应的提示词里加一条规则——生图产品平时就是这么迭代的。'},
+
+  {id:'c5_1', r:'收尾', no:'5.1', t:'回头看：哪些交给模型，哪些写死', focus:[], fit:'all',
+   a:[
+    `数一下画布：3 个 LLM 节点（看图、写方案、写提示词）+ 1 个生图工具，其余都是流程。`,
+    `<table class="t"><tr><th>这件事</th><th>谁来定</th><th>为什么</th></tr>
+      <tr><td>看懂商品图</td><td>模型</td><td>每张图都不一样，要理解</td></tr>
+      <tr><td>设计场景、写提示词</td><td>模型</td><td>要创意</td></tr>
+      <tr><td>先做什么、后做什么</td><td>流程</td><td>每次都一样</td></tr>
+      <tr><td>出几张、几张一起跑</td><td>流程</td><td>用户填的数字说了算</td></tr>
+      <tr><td>不是商品图、一张都没出来</td><td>流程</td><td>兜底要稳</td></tr></table>`,
+    `面试可以这样讲：「我把一个 1 主 2 子的多 Agent 生图产品改成了 Chatflow。原来的工具里，列计划、交接、并行、结束是 Agent 用来管自己的，流程写死后都不需要了；模型只留在看图、写方案、写提示词这三处需要理解和创意的地方。」`],
+   check:'和案例一同一个结论：能写死的别交给模型，写不死的才交给模型。'},
+
+  {id:'c5_2', r:'收尾', no:'5.2', t:'发布', focus:[], fit:'all',
+   a:[
+    `右上 ${ui('发布')} → ${ui('发布更新')} → ${ui('打开 Web 应用')}`,
+    `Web 应用里先填表（传图、选尺寸和场景、填数量），再发一句话开始；生成的图可以点开看大图、下载`,
+    `把链接发给做电商、运营的朋友试试，问问哪几张能直接用`]},
+  ],
+  nodes:[
+    {id:'sc_start',  type:'start', title:'用户输入',     x:0,    y:300, w:240, from:'c1_2', fields:SC_FIELDS, fieldsFrom:'c1_3'},
+    {id:'sc_see',    type:'llm',   title:'看图识商品',   x:320,  y:330, w:240, from:'c2_1', model:SC_MODEL, vision:true, prompt:'P_SC_SEE', user:P_SC_SEE_USER},
+    {id:'sc_ifp',    type:'if',    title:'是不是商品图', x:610,  y:310, w:250, from:'c2_2', cond:{v:['看图识商品', 'text'], op:'包含', val:'【非商品图】', ifS:'看图识商品/text 包含【非商品图】', elseS:'是商品图', ifTo:'→ 连到「请换图」', elseTo:'其余情况 → 连到下一步', note:'用「包含」，不用「是」。'}},
+    {id:'sc_bad',    type:'ans',   title:'请换图',       x:930,  y:120, w:250, from:'c2_2'},
+    {id:'sc_plan',   type:'llm',   title:'出设计方案',   x:930,  y:400, w:240, from:'c3_1', model:SC_MODEL, prompt:'P_SC_PLAN', user:P_SC_PLAN_USER},
+    {id:'sc_prompt', type:'llm',   title:'写生图提示词', x:1220, y:400, w:240, from:'c3_2', model:SC_MODEL, prompt:'P_SC_PROMPT', user:P_SC_PROMPT_USER, so:true},
+    {id:'sc_iter',   type:'iter',  title:'逐张生图',     x:1510, y:330, w:400, h:270, from:'c4_1', outFrom:'c4_2'},
+    {id:'sc_img',    type:'tool',  title:'编辑图像',     x:1600, y:448, w:276, from:'c4_2', kind:'img'},
+    {id:'sc_ifimg',  type:'if',    title:'出图了吗',     x:1980, y:390, w:250, from:'c4_4', cond:{v:['逐张生图', 'output'], op:'为空', val:'', ifS:'逐张生图/output 为空', elseS:'出了图', ifTo:'→ 连到「没出图」', elseTo:'其余情况 → 连到「出图」', note:'「为空」= 一张图都没出来。', tag:'待实测'}},
+    {id:'sc_none',   type:'ans',   title:'没出图',       x:2300, y:220, w:250, from:'c4_4'},
+    {id:'sc_out',    type:'ans',   title:'出图',         x:930,  y:400, w:250, from:'c2_2',
+     moves:[{from:'c3_1', x:1220, y:410}, {from:'c3_2', x:1510, y:410}, {from:'c4_1', x:1980, y:410}, {from:'c4_4', x:2300, y:450}]},
+  ],
+  ans:{
+    sc_bad:[{from:'c2_2', fixed:T_SC_BAD}],
+    sc_none:[{from:'c4_4', fixed:T_SC_NONE}],
+    sc_out:[{from:'c2_2', ref:['看图识商品', 'text'], tmp:true}, {from:'c3_1', ref:['出设计方案', 'text'], tmp:true},
+            {from:'c4_3', mix:[['出设计方案', 'text'], '\n\n---\n生成结果：\n', ['逐张生图', 'output']]}],
+  },
+  edges:[
+    {s:'sc_start', h:'out', t:'sc_see', from:'c2_1'},
+    {s:'sc_see', h:'out', t:'sc_ifp', from:'c2_2'},
+    {s:'sc_ifp', h:'if', t:'sc_bad', from:'c2_2'},
+    {s:'sc_ifp', h:'else', t:'sc_out', from:'c2_2', until:'c3_1'},
+    {s:'sc_ifp', h:'else', t:'sc_plan', from:'c3_1'},
+    {s:'sc_plan', h:'out', t:'sc_out', from:'c3_1', until:'c3_2'},
+    {s:'sc_plan', h:'out', t:'sc_prompt', from:'c3_2'},
+    {s:'sc_prompt', h:'out', t:'sc_out', from:'c3_2', until:'c4_1'},
+    {s:'sc_prompt', h:'out', t:'sc_iter', from:'c4_1'},
+    {s:'sc_iter', h:'istart', t:'sc_img', from:'c4_2'},
+    {s:'sc_iter', h:'out', t:'sc_out', from:'c4_1', until:'c4_4'},
+    {s:'sc_iter', h:'out', t:'sc_ifimg', from:'c4_4'},
+    {s:'sc_ifimg', h:'if', t:'sc_none', from:'c4_4'},
+    {s:'sc_ifimg', h:'else', t:'sc_out', from:'c4_4'},
+  ],
+};
+
+const PROMPTS = {P_NOTE, P_WEB, P_IV, P_QUIZ, P_GRADE, P_AG_QA, P_AG_IV, P_SC_SEE, P_SC_PLAN, P_SC_PROMPT};
+const VERSIONS = {v3:V3, v4:V4, scene:SCENE};
+/* 两级导航：案例 → 版本 */
+const CASES = {
+  notes:{no:'案例一', name:'笔记学习助手', sub:'把昨天的 Agent 改成路由：先分诊，再按模式走写死的流程'},
+  scene:{no:'案例二', name:'商品场景图生成器', sub:'复现一个真实的生图 Agent：看图、出方案、并行出图'},
+};
+const FLOWS = {v3:{c:'notes', ver:'路由版', q:'notes'}, v4:{c:'notes', ver:'多 Agent 版 · 进阶', q:'notes-adv'}, scene:{c:'scene', q:'scene'}};
+const COND_NOTE = {v:['笔记回答', 'text'], op:'包含', val:'【笔记未覆盖】', ifS:'笔记回答/text 包含【笔记未覆盖】', elseS:'笔记够用', ifTo:'', elseTo:'其余情况 → 连到「直接回复」', note:'用「包含」，不用「是」。'};
+const mixTpl = m => m.map(x => typeof x === 'string' ? x : `（按 / 选 ${x[0]} / ${x[1]}）`).join('');
+const mixHtml = m => m.map(x => typeof x === 'string' ? esc(x) : v(x[0], x[1])).join('');
 
 /* ================= 状态 ================= */
 let CV = V3, IDX = {}, NODE = {}, cur = 0, selId = null, MODE = 'flow';
@@ -969,23 +1389,30 @@ const world = document.getElementById('world'), svg = document.getElementById('e
 function nodeBody(n, eff){
   switch (n.type) {
     case 'start':
-      if (n.fieldsFrom && at(n.fieldsFrom) <= eff) return `<div class="nbody"><div class="pill">{x} query <span class="tagc">文本</span></div></div>`;
+      if (n.fieldsFrom && at(n.fieldsFrom) <= eff)
+        return `<div class="nbody">${(n.fields || [{k:'query', t:'文本'}]).map(f => `<div class="pill">{x} ${f.k} <span class="tagc">${f.t}</span></div>`).join('')}</div>`;
       return '';
     case 'kb': return `<div class="nbody"><div class="pill">📚 我的课程笔记</div></div>`;
     case 'cls': return `<div class="nbody"><div class="pill">gpt-4.1-mini <span class="tagc">CHAT</span></div>` +
       CLASSES.map(c => `<div class="row"><b>${c.t}</b><small>${c.d}</small><span class="h out" data-h="${c.id}"></span></div>`).join('') + `</div>`;
-    case 'llm': return `<div class="nbody"><div class="pill">对话模型 <span class="tagc">CHAT</span>${n.mem ? ' <span class="tagc">记忆</span>' : ''}</div></div>`;
+    case 'llm': return `<div class="nbody"><div class="pill">${n.model || '对话模型'}${n.model ? '' : ' <span class="tagc">CHAT</span>'}${n.mem ? ' <span class="tagc">记忆</span>' : ''}${n.vision ? ' <span class="tagc">视觉</span>' : ''}${n.so ? ' <span class="tagc">结构化</span>' : ''}</div></div>`;
     case 'agent': return `<div class="nbody"><div class="pill">Function Calling <span class="tagc">策略</span></div><div class="nlabel">工具</div><div class="tl">🧩 查课程笔记</div><div class="tl">🔎 Bocha Web Search</div></div>`;
-    case 'if': return `<div class="nbody">
-      <div class="row"><b>IF</b><small>笔记回答/text 包含【笔记未覆盖】</small><span class="h out" data-h="if"></span></div>
-      <div class="row"><b>ELSE</b><small>笔记够用</small><span class="h out" data-h="else"></span></div></div>`;
+    case 'if': {
+      const c = n.cond || COND_NOTE;
+      return `<div class="nbody">
+      <div class="row"><b>IF</b><small>${c.ifS}</small><span class="h out" data-h="if"></span></div>
+      <div class="row"><b>ELSE</b><small>${c.elseS}</small><span class="h out" data-h="else"></span></div></div>`;
+    }
     case 'tool': {
+      if (n.kind === 'img') return `<div class="nbody"><div class="pill">🖼 gemini-2.5-flash-image</div><div class="pill">参考图 = product_image</div><div class="pill">宽高比 = ratio</div></div>`;
       const fail = n.failFrom && at(n.failFrom) <= eff;
       return `<div class="nbody"><div class="pill">🔎 博查 · 查询 = query</div>${fail ? `<div class="row fail"><b>失败分支</b><small>博查欠费 / 限流时走这里</small><span class="h out" data-h="fail" style="background:var(--orange)"></span></div>` : ''}</div>`;
     }
+    case 'iter': return `<div class="nbody"><div class="pill">{x} prompts <span class="tagc">Array</span></div><div class="pill">并行 · 最大 4</div></div>
+      <div class="iarea" style="top:104px"><span class="istart">▶<span class="h out" data-h="istart"></span></span></div>`;
     case 'ans': {
       const s = ansState(n.id, eff); if (!s) return '';
-      return `<div class="nbody"><div class="nlabel">回复</div><div class="anstext">${s.ref ? v(s.ref[0], s.ref[1]) : esc(s.place || s.fixed)}</div></div>`;
+      return `<div class="nbody"><div class="nlabel">回复</div><div class="anstext">${s.mix ? mixHtml(s.mix) : s.ref ? v(s.ref[0], s.ref[1]) : esc(s.place || s.fixed)}</div></div>`;
     }
     case 'out': return `<div class="nbody"><div class="nlabel">输出变量</div><div class="anstext">notes ← ${v('知识检索','result')}</div></div>`;
   }
@@ -1007,14 +1434,15 @@ function renderCanvas(){
     const p = dying(n) && n.ghostPos ? n.ghostPos : posOf(n, eff);
     el.dataset.node = n.id;
     el.style.left = p.x + 'px'; el.style.top = p.y + 'px'; el.style.width = n.w + 'px';
-    const hasOut = ['start','kb','llm','tool','agent'].includes(n.type);
+    if (n.h) { el.style.height = n.h + 'px'; el.classList.add('iter'); }
+    const hasOut = ['start','kb','llm','tool','agent','iter'].includes(n.type) && !(n.type === 'tool' && n.kind === 'img');
     el.innerHTML = `${n.type !== 'start' ? '<span class="h in" data-h="in"></span>' : ''}
       <div class="nhead"><span class="nicon" style="background:${COLOR[n.type]}">${ICON[n.type]}</span><span class="ntitle">${n.title}</span></div>
       ${nodeBody(n, eff)}${hasOut ? '<span class="h out" data-h="out"></span>' : ''}`;
     el.addEventListener('click', ev => { ev.stopPropagation(); selectNode(n.id); });
     world.appendChild(el);
   }
-  document.getElementById('board').innerHTML = `当前画布：<b>${CV.boards[boardOf()]}</b>`;
+  document.getElementById('board').innerHTML = `画布：<b>${CV.boards[boardOf()]}</b>`;
   drawEdges();
 }
 function offsetIn(el, stop){ let x = 0, y = 0; while (el && el !== stop) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; } return {x, y}; }
@@ -1068,7 +1496,11 @@ function focusStep(){
   if (st.fitIds) return fitIds(st.fitIds);
   if (st.fit === 'all' || !st.focus.length) return fitAll();
   const near = new Set(st.focus);
-  for (const e of CV.edges) { if (st.focus.includes(e.t)) near.add(e.s); if (st.focus.includes(e.s)) near.add(e.t); }
+  const eff = effOf(cur);
+  for (const e of CV.edges) {
+    if (at(e.from) > eff || (e.until && eff >= at(e.until))) continue;
+    if (st.focus.includes(e.t)) near.add(e.s); if (st.focus.includes(e.s)) near.add(e.t);
+  }
   fitIds([...near], .9);
 }
 function zoomAt(f, cx, cy){
@@ -1116,11 +1548,29 @@ const DESC = {
   llm_grade:'开记忆，看得到上一轮的题，逐题评分。',
   ag_qa:'自己决定：查几次笔记、要不要联网、要不要查证纠错。',
   ag_iv:'自己决定：拆成哪几个知识点去查、要不要搜真实面经。',
+  sc_start:'用户先填表：一张商品图 + 尺寸、场景、数量。',
+  sc_see:'打开视觉看图：认出是什么商品；不是商品图只输出【非商品图】。',
+  sc_ifp:'认暗号：有【非商品图】走 IF 请用户换图，没有走 ELSE 继续。',
+  sc_bad:'写死的一句话，不调模型。',
+  sc_plan:'每张图一组关键词：8 个维度，分到 6 个子分类里。',
+  sc_prompt:'把每组关键词扩写成一条英文生图提示词，输出成列表。',
+  sc_iter:'对列表里的每条提示词各出一张图，4 张一起跑。',
+  sc_img:'带着用户的商品图，按这一条提示词画一张新图。',
+  sc_ifimg:'一张图都没出来时，换一句话回复用户。',
+  sc_none:'给「全部失败」兜底的固定回复。',
+  sc_out:'把设计方案和图片一起回给用户。',
 };
+const NOTE = t => `<div class="note">${t}</div>`;
 
 function panelFor(n, eff){
   let b = '';
-  if (n.type === 'start') {
+  if (n.type === 'start' && n.fields) {
+    const has = at(n.fieldsFrom) <= eff;
+    b += F('输入字段', has ? n.fields.map(f => `<div class="kbitem">{x} <b>${f.k}</b><span class="muted">· ${f.t} · 显示名称「${f.label}」</span><div class="note" style="width:100%;margin:0">${f.set}</div></div>`).join('')
+      : `<div class="muted">还没有字段（下一步加）</div>`);
+    if (has) b += F('下拉选项 · 图片尺寸', pe('一项一项添加', SC_RATIOS)) + F('下拉选项 · 场景类型', pe('一项一项添加', SC_SCENES));
+    b += F('系统变量', `<div class="outv">${v('', 'query')}<span>String · 用户在对话框发的那句话（这里当「补充要求」用）</span></div>`);
+  } else if (n.type === 'start') {
     if (n.board === 'tool') {
       const has = at(n.fieldsFrom) <= eff;
       b += F('输入字段', has ? `<div class="kbitem">{x} <b>query</b> <span class="muted">· 文本 · 显示名称「要查的问题」· 必填</span></div>` : `<div class="muted">还没有字段（下一步加）</div>`);
@@ -1133,7 +1583,7 @@ function panelFor(n, eff){
     b += F('查询文本', box(Q));
     b += F('知识库', `<div class="kbitem">📚 我的课程笔记</div>`);
     b += F('检索设置', box('默认，不用改'));
-    if (n.v4note) b += F('V4 里', `<div class="note">只有「出题」「评分」还在用它的 result；两个 Agent 用自己的工具查笔记。</div>`);
+    if (n.v4note) b += F('多 Agent 版里', `<div class="note">只有「出题」「评分」还在用它的 result；两个 Agent 用自己的工具查笔记。</div>`);
     b += outs([['result', 'Array[Object]', '检索到的笔记分段']]);
   }
   if (n.type === 'out') {
@@ -1149,14 +1599,17 @@ function panelFor(n, eff){
     b += outs([['class_name', 'String', '模型选中的分类']]);
   }
   if (n.type === 'llm') {
-    b += F('模型', box('你自己 API Key 的对话模型'));
+    b += F('模型', box(n.model ? `<b>${n.model}</b> <span class="muted">· Aihubmix</span>` : '你自己 API Key 的对话模型'));
+    if (n.vision) b += F('视觉', `<div>${sw(true)}<b>打开</b></div><div class="cond"><div class="ifl">变量</div><div class="cr">${v('用户输入', 'product_image')}</div></div><div class="cond"><div class="ifl">分辨率</div><div class="cr"><span class="val">高</span></div></div>` + NOTE('能看图的模型才有这个开关。'));
     b += F('上下文', box(n.ctx ? v('查笔记', 'result') : '<span class="muted">不用设</span>'));
     b += F('提示词', pe('SYSTEM', PROMPTS[n.prompt]) + (n.ctx ? `<div class="note">粘贴后删掉黄色那一行，在原位置按 <kbd>/</kbd> 选「上下文」。</div>` : ''));
-    if (n.web) b += F('USER', pe('USER', P_WEB_USER) + `<div class="note">粘贴后，用 <kbd>/</kbd> 把两处黄字换成对应变量。</div>`);
+    if (n.user) b += F('USER', pe('USER', n.user) + NOTE(/按 \/ 选/.test(n.user) ? '点「添加消息」新增一条 USER，粘贴后用 <kbd>/</kbd> 把黄字换成对应变量。' : '点「添加消息」新增一条 USER，粘贴进去。'));
+    else if (n.web) b += F('USER', pe('USER', P_WEB_USER) + `<div class="note">粘贴后，用 <kbd>/</kbd> 把两处黄字换成对应变量。</div>`);
     else if (n.mem) b += F('USER', box(Q) + `<div class="note">打开记忆后若已自动带上本轮问题，就不要再手动加。</div>`, '待实测');
     else b += F('USER', box(Q) + `<div class="note">点「添加消息」新增一条 USER，按 <kbd>/</kbd> 选择。</div>`);
     b += F('记忆', `<div>${sw(!!n.mem)}${n.mem ? '<b>打开</b>，窗口保持默认' : '关'}</div>`);
-    b += outs([['text', 'String', '模型的回答']]);
+    if (n.so) b += F('结构化输出', `<div>${sw(true)}<b>打开</b> → 点开编辑 → 从 JSON 导入</div>` + pe('Schema', SC_SCHEMA) + NOTE('导入后能看到一个字段 prompts，类型 array，里面是 string。'));
+    b += outs(n.so ? [['text', 'String', '模型的回答'], ['structured_output.prompts', 'Array[String]', '一张图一条提示词']] : [['text', 'String', '模型的回答']]);
   }
   if (n.type === 'agent') {
     b += F('Agent 策略', box('Function Calling（函数调用）') + `<div class="note">列表是空的：${ui('插件')} → 市场搜「Agent 策略」，装 Dify 官方的那个。</div>`, '待实测');
@@ -1169,11 +1622,32 @@ function panelFor(n, eff){
     b += outs([['text', 'String', 'Agent 的最终回答']]);
   }
   if (n.type === 'if') {
-    b += F('条件', `<div class="cond"><div class="ifl">IF</div><div class="cr">${v('笔记回答', 'text')}<span class="op">包含</span><span class="val">【笔记未覆盖】</span></div></div>
-      <div class="cond"><div class="ifl">ELSE</div><div class="cr"><span class="muted">其余情况 → 连到「直接回复」</span></div></div>
-      <div class="note">用「包含」，不用「是」。</div>`);
+    const c = n.cond || COND_NOTE;
+    b += F('条件', `<div class="cond"><div class="ifl">IF</div><div class="cr">${v(c.v[0], c.v[1])}<span class="op">${c.op}</span>${c.val ? `<span class="val">${c.val}</span>` : ''}</div></div>
+      ${c.ifTo ? `<div class="note" style="margin:-2px 0 8px 58px">${c.ifTo}</div>` : ''}
+      <div class="cond"><div class="ifl">ELSE</div><div class="cr"><span class="muted">${c.elseTo}</span></div></div>
+      ${c.note ? NOTE(c.note) : ''}`, c.tag);
   }
-  if (n.type === 'tool') {
+  if (n.type === 'iter') {
+    const has = at(n.outFrom) <= eff;
+    b += F('输入', box(v('写生图提示词', 'structured_output / prompts')) + NOTE('迭代只认列表：有几条提示词，就把框里的节点跑几遍。'));
+    b += F('并行模式', `<div>${sw(true)}<b>打开</b></div>`);
+    b += F('最大并行度', box('4'));
+    b += F('错误响应方法', box('移除错误输出') + NOTE('某一张失败就丢掉它，其余照常出。'));
+    b += F('扁平化输出', `<div>${sw(true)}<b>打开</b></div>`);
+    b += F('输出变量', box(has ? v('编辑图像', 'files') : '<span class="muted">下一步放好工具再选</span>'));
+    b += outs([['output', 'Array[File]', '所有生成的图片']]);
+  }
+  if (n.type === 'tool' && n.kind === 'img') {
+    b += F('工具', `<div class="kbitem">🖼 <b>AIHubMix 图片生成</b><span class="muted">· 编辑图像</span></div>` + NOTE('1.1 步授权过就能直接用。'));
+    b += F('输入变量 · 模型', box('<b>gemini-2.5-flash-image</b>') + NOTE('下拉里没有就选 qwen-image-3.0。'));
+    b += F('输入变量 · 提示词', box(v('逐张生图', 'item')) + NOTE('按 <kbd>/</kbd> 选。item 是迭代当前这一条提示词。'));
+    b += F('输入变量 · 图片', box(v('用户输入', 'product_image')));
+    b += F('输入变量 · 蒙版、负面提示词', box('<span class="muted">留空</span>'));
+    b += F('设置 · 宽高比', box(v('用户输入', 'ratio')) + NOTE('按 <kbd>/</kbd> 插入变量，用户在表单里选的尺寸就生效。'));
+    b += F('设置 · 其他', box('<span class="muted">生成数量、尺寸、输出格式、种子都留空</span>'));
+    b += outs([['files', 'Array[File]', '生成的图片'], ['text', 'String'], ['json', 'Array[Object]']]);
+  } else if (n.type === 'tool') {
     const fail = n.failFrom && at(n.failFrom) <= eff;
     b += F('认证', box('选择已有凭证，或填博查 API Key'));
     b += F('输入变量 · 查询', box(Q), '参数名待实测');
@@ -1184,7 +1658,8 @@ function panelFor(n, eff){
   }
   if (n.type === 'ans') {
     const s = ansState(n.id, eff);
-    if (s && s.ref) b += F('回复', box(v(s.ref[0], s.ref[1])) + `<div class="note">删掉原来的内容，按 <kbd>/</kbd> 选这个变量。</div>`);
+    if (s && s.mix) b += F('回复', pe('回复模板', mixTpl(s.mix)) + NOTE('删掉原来的内容，粘贴后用 <kbd>/</kbd> 把两处黄字换成对应变量。'));
+    else if (s && s.ref) b += F('回复', box(v(s.ref[0], s.ref[1])) + NOTE(`${s.tmp ? '<b>临时的</b>，只为这一轮能测，后面会换掉。' : ''}删掉原来的内容，按 <kbd>/</kbd> 选这个变量。`));
     else if (s && s.place) b += F('回复', pe('占位文字（只为测分流）', s.place));
     else if (s) b += F('回复', pe('写死的回复（不调模型）', s.fixed));
   }
@@ -1198,6 +1673,11 @@ function panelSpecial(kind){
     ${F('对话开场白', `<div>${sw(true)}打开</div>` + pe('开场白', T_OPEN))}
     ${F('开场问题', cb('给我讲讲 System Prompt') + cb('Agent 相关的面试题有哪些') + cb('用提示词工程模块考考我'))}
     ${F('引用和归属', `<div>${sw(true)}打开</div><div class="note">用到笔记的回答会显示编号引用，可点开原文分段。</div>`)}</div>`;
+  if (kind === 'aihub') return `<div class="ph"><div class="phr"><span class="pt">插件和授权</span></div><div class="pdesc">顶部「插件」「工具」和右上「设置」里操作</div></div><div class="pb">
+    ${F('工具插件', `<div class="kbitem">🖼 <b>AIHubMix 图片生成</b><span class="muted">· langgenius · 生成图像、编辑图像两个工具</span></div>`)}
+    ${F('模型供应商插件', `<div class="kbitem">✳️ <b>Aihubmix</b><span class="muted">· langgenius · 对话模型都走它</span></div>`)}
+    ${F('API 密钥', box('console.aihubmix.com/token 里的 Key') + NOTE('工具授权和模型供应商填同一个 Key。'))}
+    ${F('API 接口地址', box('https://api.inferera.com <span class="muted">（默认，不用改）</span>'))}</div>`;
   if (kind === 'publishTool') return `<div class="ph"><div class="phr"><span class="nicon" style="background:var(--c-tool)">${ICON.tool}</span><span class="pt">发布为工具</span></div><div class="pdesc">发布 → 发布为工具，弹窗里按这里填</div></div><div class="pb">
     ${F('名称', cb('查课程笔记'))}
     ${F('工具调用名称', cb('search_course_notes') + `<div class="note">给模型看的名字，只能英文、数字、下划线。两个 Agent 的指令里用的就是它。</div>`)}
@@ -1221,54 +1701,83 @@ function selectNode(id){
   p.innerHTML = panelFor(NODE[id], effOf(cur)); p.scrollTop = 0;
 }
 
-/* ================= 步骤栏 / 说明卡 ================= */
+/* ================= 侧栏 / 面包屑 / 说明卡 ================= */
+let lastNotes = 'v3';
+function renderSider(){
+  const fl = FLOWS[CV.id];
+  let h = '<div class="cases">' + Object.entries(CASES).map(([k, d]) =>
+    `<button class="case${k === fl.c ? ' on' : ''}" data-case="${k}"><span class="cn">${d.no}</span><b>${d.name}</b><small>${d.sub}</small></button>`).join('') + '</div>';
+  if (fl.c === 'notes') {
+    h += `<div class="segm"><button data-ver="v3"${CV.id === 'v3' ? ' class="on"' : ''}>路由版</button><button data-ver="v4"${CV.id === 'v4' ? ' class="on"' : ''}>多 Agent 版 <span class="tg orange sm">进阶</span></button></div>`;
+    if (CV.id === 'v4') h += AL('warn', '', '进阶：做得快、有基础的同学自己试，课上不带练。');
+  }
+  const el = document.getElementById('sidertop');
+  el.innerHTML = h;
+  el.querySelectorAll('[data-case]').forEach(b => b.onclick = () => {
+    const id = b.dataset.case === 'notes' ? lastNotes : 'scene';
+    if (id !== CV.id) setVersion(id);
+  });
+  el.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { if (b.dataset.ver !== CV.id) setVersion(b.dataset.ver); });
+}
 function renderSteps(){
   const nav = document.getElementById('steps');
   let html = '', last = '';
   CV.steps.forEach((s, i) => {
-    if (s.r !== last) { html += `<div class="round">${s.r}</div>`; last = s.r; }
-    html += `<button class="step${i === cur ? ' on' : ''}${i < cur && i > 0 ? ' done' : ''}" data-i="${i}"><span class="no">${s.no}</span><span>${s.t}</span></button>`;
+    if (s.r !== last) { html += `<div class="mg">${s.r}</div>`; last = s.r; }
+    html += `<button class="step${i === cur ? ' on' : ''}" data-i="${i}"><span class="no">${s.no}</span><span>${s.t}</span>${i < cur && i > 0 ? '<span class="tick">✓</span>' : ''}</button>`;
   });
   nav.innerHTML = html;
   nav.querySelectorAll('.step').forEach(b => b.onclick = () => go(+b.dataset.i));
   const on = nav.querySelector('.step.on'); if (on) on.scrollIntoView({block:'nearest'});
 }
+function setProg(text, k, n){
+  document.getElementById('prog').textContent = text;
+  document.getElementById('pbar').style.width = (n ? Math.round(k / n * 100) : 0) + '%';
+}
 function renderGuide(){
-  const s = STEP();
-  let h = `<div class="gh"><span class="gno">${s.no === '0' ? '总览' : s.no}</span><h2>${s.t}</h2><span class="gr">${s.r}</span></div><ol>${s.a.map(x => `<li>${x}</li>`).join('')}</ol>`;
-  if (s.warn) h += `<div class="call warn"><b class="k">注意</b>${s.warn}</div>`;
-  if (s.tip) h += `<div class="call tip"><b class="k">教学点</b>${s.tip}</div>`;
-  if (s.check) h += `<div class="call check"><b class="k">检查点</b>${s.check}</div>`;
-  if (s.egg) h += `<div class="call egg">🥚 ${s.egg}</div>`;
+  const s = STEP(), fl = FLOWS[CV.id], cs = CASES[fl.c];
+  const parts = ['Chatflow 案例', `${cs.no} · ${cs.name}`].concat(fl.ver ? [fl.ver] : [], [s.r]);
+  document.getElementById('bc').innerHTML = parts.map(x => `<span>${x}</span>`).join('<i>/</i>');
+  let h = `<div class="gh"><span class="gno">${s.no === '0' ? '总览' : s.no}</span><h2>${s.t}</h2></div><ol class="acts">${s.a.map(x => `<li>${x}</li>`).join('')}</ol>`;
+  if (s.warn) h += AL('warn', '注意', s.warn);
+  if (s.tip) h += AL('info', '教学点', s.tip);
+  if (s.check) h += AL('check', '检查点', s.check);
+  if (s.egg) h += AL('egg', '', s.egg);
   const g = document.getElementById('guide'); g.innerHTML = h; g.scrollTop = 0;
   const N = CV.steps.length - 1;
-  document.getElementById('prog').textContent = cur === 0 ? `共 ${N} 步` : `第 ${cur} / ${N} 步`;
+  setProg(cur === 0 ? `共 ${N} 步` : `第 ${cur} / ${N} 步`, cur, N);
   document.getElementById('prev').disabled = cur === 0;
   document.getElementById('next').disabled = cur === N;
-  document.getElementById('apptitle').textContent = CV.title;
-  markSeg();
+  markNav();
 }
-function markSeg(){ document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', MODE === 'nodes' ? b.dataset.v === 'nodes' : b.dataset.v === CV.id)); }
+function markNav(){ document.querySelectorAll('#topnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === (MODE === 'nodes' ? 'nodes' : 'cases'))); }
 function save(){ try { localStorage.setItem('w2d3-manual', JSON.stringify({m:MODE, v:CV.id, s:STEP().id, n:NSTATE.cur})); } catch (e) {} }
+function syncURL(){
+  try {
+    const q = MODE === 'nodes' ? `?node=${NSTATE.cur}` : `?case=${FLOWS[CV.id].q}&step=${STEP().id}`;
+    history.replaceState(null, '', location.pathname + q);
+  } catch (e) {}
+}
 function go(i){
   cur = Math.max(0, Math.min(CV.steps.length - 1, i));
   const s = STEP();
   selId = s.sel || s.focus[0] || null;
-  save(); renderSteps(); renderGuide(); renderCanvas(); renderPanel();
+  save(); syncURL(); renderSteps(); renderGuide(); renderCanvas(); renderPanel();
   requestAnimationFrame(focusStep);
 }
 function setVersion(id, stepId){
   CV = VERSIONS[id] || V3;
+  if (CV.id !== 'scene') lastNotes = CV.id;
   IDX = Object.fromEntries(CV.steps.map((s, i) => [s.id, i]));
   NODE = Object.fromEntries(CV.nodes.map(n => [n.id, n]));
+  renderSider();
   go(stepId && stepId in IDX ? IDX[stepId] : 0);
 }
 document.getElementById('prev').onclick = () => MODE === 'nodes' ? nodeStep(-1) : go(cur - 1);
 document.getElementById('next').onclick = () => MODE === 'nodes' ? nodeStep(1) : go(cur + 1);
-document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
-  if (b.dataset.v === 'nodes') return showNodes();
-  const was = MODE === 'nodes'; showFlows();
-  if (b.dataset.v !== CV.id) setVersion(b.dataset.v); else if (was) go(cur);
+document.querySelectorAll('#topnav button').forEach(b => b.onclick = () => {
+  if (b.dataset.tab === 'nodes') return showNodes();
+  if (MODE === 'nodes') { showFlows(); go(cur); }
 });
 
 /* ================= 彩蛋 ================= */
@@ -1291,7 +1800,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ================= 复制 ================= */
-function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1200); }
+function toast(t){ const el = document.getElementById('toast'); el.innerHTML = AI.check + `<span>${esc(t)}</span>`; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1200); }
 document.addEventListener('click', async e => {
   const b = e.target.closest('.cp'); if (!b) return;
   e.stopPropagation();
@@ -1350,9 +1859,9 @@ const NGROUPS = ['开始', '结束', 'AI', '问题理解', '逻辑', '转换', '
 
 const NDOCS = [
 /* ---------- 开始 ---------- */
-{id:'start', type:'start', name:'用户输入', group:'开始', used:{v:'v3', s:'s1_1', label:'V3 · 1.1 创建 Chatflow'},
+{id:'start', type:'start', name:'用户输入', group:'开始', uses:[{v:'v3', s:'s1_1', label:'案例一 · 1.1 创建 Chatflow'}, {v:'scene', s:'c1_3', label:'案例二 · 1.3 表单字段'}],
  one:'流程的起点：规定用户要交什么材料。', like:'像挂号单上要你填的那几栏。',
- how:'Workflow 里自己加字段（文本、段落、下拉、数字、文件……），每个字段就是一个变量；Chatflow 自带用户那句话 <code>query</code>，一般不用加。',
+ how:'Workflow 里自己加字段（文本、段落、下拉、数字、文件……），每个字段就是一个变量；Chatflow 自带用户那句话 <code>query</code>；要用户先交图片、选选项，也可以加字段（案例二就加了 4 个）。',
  scenes:['简历优化：上传简历 + 粘贴目标 JD', '活动报名：姓名、手机号、下拉选场次', 'Chatflow：用户每发一句话，就是一次输入'],
  demo:{title:'简历建议（Workflow）',
   nodes:[
@@ -1392,7 +1901,7 @@ const NDOCS = [
   }}},
 
 /* ---------- 结束 ---------- */
-{id:'answer', type:'ans', name:'直接回复', group:'结束', badge:'Chatflow 专属', bcls:'cf', used:{v:'v3', s:'s1_3', label:'V3 · 1.3 五个出口'},
+{id:'answer', type:'ans', name:'直接回复', group:'结束', badge:'Chatflow 专属', bcls:'cf', uses:[{v:'v3', s:'s1_3', label:'案例一 · 1.3 五个出口'}, {v:'scene', s:'c2_2', label:'案例二 · 2.2 请换图'}],
  one:'Chatflow 的终点：把话回给用户。', like:'像客服开口回答你。',
  how:'写固定文字，或按 <kbd>/</kbd> 插入前面节点的变量。可以放好几个：不同分支各回各的，也能先回一句「收到」再继续干活。',
  scenes:['「其他」分支写死一句能力说明，0 token', '长任务先回「收到，正在查」', '把 LLM 的回答原样回给用户'],
@@ -1404,7 +1913,7 @@ const NDOCS = [
   ctl:() => CT.text('q', '用户说', '什么是 RAG'),
   run:x => [fr(['s', 'a'], `<div class="chat">${bub('u', x.q || '（空）')}${bub('b', `收到！你想了解「${x.q}」，我去查一下～`)}</div>` + MU('这句回复是写死的模板 + 一个变量，没调模型：0 token，每次都一样。'))]}},
 
-{id:'output', type:'out', name:'输出', group:'结束', badge:'Workflow 专属', bcls:'wf', used:{v:'v4', s:'t1_4', label:'V4 · 1.4 输出 notes'},
+{id:'output', type:'out', name:'输出', group:'结束', badge:'Workflow 专属', bcls:'wf', uses:[{v:'v4', s:'t1_4', label:'案例一进阶 · 1.4 输出 notes'}],
  one:'Workflow 的终点：把结果交出去。', like:'像窗口递出做好的成品。',
  how:'加输出变量：起个名字，选上游的值。名字就是 API 返回里的键；发布成工具后，就是工具的返回值。别用 text / files / json 当名字。',
  scenes:['给调用 API 的程序返回结果', '发布成工具后，就是工具交回去的东西', 'Web 应用批量运行时，每行一个结果'],
@@ -1424,9 +1933,9 @@ const NDOCS = [
   }}},
 
 /* ---------- AI ---------- */
-{id:'llm', type:'llm', name:'LLM', group:'AI', used:{v:'v3', s:'s2_2', label:'V3 · 2.2 出面试题'},
+{id:'llm', type:'llm', name:'LLM', group:'AI', uses:[{v:'v3', s:'s2_2', label:'案例一 · 2.2 出面试题'}, {v:'scene', s:'c2_1', label:'案例二 · 2.1 看图识商品（视觉）'}],
  one:'让模型干需要「理解」的活。', like:'像请秘书写东西：你提要求，它交稿。',
- how:'选模型 → SYSTEM 写要求 → USER 按 <kbd>/</kbd> 放输入。要用资料，就把知识检索的 result 接到「上下文」。',
+ how:'选模型 → SYSTEM 写要求 → USER 按 <kbd>/</kbd> 放输入。要用资料，就把知识检索的 result 接到「上下文」；要看图就打开「视觉」；要后面的节点拿到一个列表，就打开「结构化输出」。',
  scenes:['把会议纪要总结成 3 条', '把 JD 改写成能力清单', '按笔记出测试题'],
  demo:{title:'同一段输入，换个要求', live:true,
   nodes:[
@@ -1434,16 +1943,16 @@ const NDOCS = [
     {id:'l', type:'llm', title:'LLM', x:240, y:30, w:220, body:PL('对话模型')},
     {id:'a', type:'ans', title:'直接回复', x:530, y:40, w:170, end:true}],
   edges:[{s:'s', t:'l'}, {s:'l', t:'a'}],
-  ctl:() => CT.box('用户发来的会议纪要', '<div class="box">本周评审了笔记助手 V3。结论：分诊准确率达标；联网搜索偶尔超时，需要加失败分支；下周上线前补一轮 20 条测试，并把开场白改得更短。</div>') + CT.chips('task', ['总结成 3 条', '改写成口语', '提 3 个追问'], 'SYSTEM 里写的要求'),
+  ctl:() => CT.box('用户发来的会议纪要', '<div class="box">本周评审了笔记助手路由版。结论：分诊准确率达标；联网搜索偶尔超时，需要加失败分支；下周上线前补一轮 20 条测试，并把开场白改得更短。</div>') + CT.chips('task', ['总结成 3 条', '改写成口语', '提 3 个追问'], 'SYSTEM 里写的要求'),
   run:x => {
     const R = {
-      '总结成 3 条':'1. V3 分诊准确率达标\n2. 联网搜索偶发超时，要加失败分支\n3. 上线前补 20 条测试，开场白改短',
-      '改写成口语':'简单说一下：V3 分诊没问题，就是联网有时候会卡，我们加个兜底。上线前再测 20 条，开场白也改短点。',
+      '总结成 3 条':'1. 路由版分诊准确率达标\n2. 联网搜索偶发超时，要加失败分支\n3. 上线前补 20 条测试，开场白改短',
+      '改写成口语':'简单说一下：路由版分诊没问题，就是联网有时候会卡，我们加个兜底。上线前再测 20 条，开场白也改短点。',
       '提 3 个追问':'1. 超时多久算失败？\n2. 20 条测试覆盖哪几种模式？\n3. 开场白改短后，要不要再做一次对比？'};
     return [fr(['s', 'l', 'a'], RH('SYSTEM：' + x.task + SIM) + PRE(R[x.task]) + MU('输入没变，只改了一句要求，输出就完全不同——LLM 节点的活，全靠提示词。'), {body:{l:PL('要求：' + x.task)}})];
   }}},
 
-{id:'kb', type:'kb', name:'知识检索', group:'AI', used:{v:'v3', s:'s2_1', label:'V3 · 2.1 查笔记'},
+{id:'kb', type:'kb', name:'知识检索', group:'AI', uses:[{v:'v3', s:'s2_1', label:'案例一 · 2.1 查笔记'}],
  one:'去资料库里，翻出和问题相关的几段。', like:'像考前翻笔记，找到讲这个知识点的那几页。',
  how:'查询文本接用户问题 → 选知识库 → 输出 result（几段笔记），接到 LLM 的「上下文」里用。',
  scenes:['课程笔记助手：先查笔记再回答', '客服：查 FAQ 和售后政策', 'HR 助手：查员工手册'],
@@ -1460,11 +1969,11 @@ const NDOCS = [
       '什么是 MCP':[[0.83, 'W2D1 · MCP：让 AI 用统一的方式接入外部工具和数据……'], [0.66, 'W2D1 · API、Tool、MCP 的包含关系……'], [0.41, 'W2D2 · 构成四样：工具……']],
       '今天天气怎么样':[[0.21, 'W2D2 · Agent 的运行循环……'], [0.18, 'W1D2 · 人工智能发展史……'], [0.15, 'W2D1 · API 是什么……']]};
     const segs = R[x.q].map(([s, t]) => `<div>${esc(t)}</div><div class="bar"><i style="width:${s * 100}%"></i></div><div class="muted" style="margin:-4px 0 6px">相关度 ${s}</div>`).join('');
-    const tip = x.q === '今天天气怎么样' ? MU('分数都很低，说明笔记里其实没有。检索总会返回点什么，所以 V3 让 LLM 判断「够不够」。') : MU('这 3 段就是 result，接到 LLM 的「上下文」里，它就照着笔记回答。');
+    const tip = x.q === '今天天气怎么样' ? MU('分数都很低，说明笔记里其实没有。检索总会返回点什么，所以案例一让 LLM 判断「够不够」。') : MU('这 3 段就是 result，接到 LLM 的「上下文」里，它就照着笔记回答。');
     return [fr(['s', 'k', 'l'], RH('检索到的 3 段（result）' + SIM) + segs + tip)];
   }}},
 
-{id:'agent', type:'agent', name:'Agent', group:'AI', used:{v:'v4', s:'t2_3', label:'V4 · 2.3 答疑 Agent'},
+{id:'agent', type:'agent', name:'Agent', group:'AI', uses:[{v:'v4', s:'t2_3', label:'案例一进阶 · 2.3 答疑 Agent'}],
  one:'一个会自己决定用什么工具、用几次的员工。', like:'像派实习生去办事：给目标和工具，他自己想办法。',
  how:'选策略和模型 → 挂上工具 → 写指令 → 查询接用户问题 → 设最多想几轮。调哪个工具、调几次，它自己定。',
  scenes:['答疑：自己决定查笔记还是联网', '调研：自己搜几轮再汇总', '客服：自己查订单、查物流再回答'],
@@ -1497,7 +2006,7 @@ const NDOCS = [
   }}},
 
 /* ---------- 问题理解 ---------- */
-{id:'cls', type:'cls', name:'问题分类器', group:'问题理解', used:{v:'v3', s:'s1_2', label:'V3 · 1.2 分模式'},
+{id:'cls', type:'cls', name:'问题分类器', group:'问题理解', uses:[{v:'v3', s:'s1_2', label:'案例一 · 1.2 分模式'}],
  one:'按「意思」把请求分到不同的路。', like:'像医院导诊台：听你说症状，指你去哪个科。',
  how:'输入接用户问题 → 写几个分类，每个分类一个出口。分类描述是模型真正读的，要写清边界（「不包括……」）。',
  scenes:['笔记助手：分成问答、面试题、测试……', '客服：分售前、售后、投诉', '工单：按部门分派'],
@@ -1542,10 +2051,10 @@ const NDOCS = [
   }}},
 
 /* ---------- 逻辑 ---------- */
-{id:'ifelse', type:'if', name:'条件分支', group:'逻辑', used:{v:'v3', s:'s3_2', label:'V3 · 3.2 笔记够不够'},
+{id:'ifelse', type:'if', name:'条件分支', group:'逻辑', uses:[{v:'v3', s:'s3_2', label:'案例一 · 3.2 笔记够不够'}, {v:'scene', s:'c2_2', label:'案例二 · 2.2 是不是商品图'}],
  one:'按「规则」分路：满足条件走这边，不满足走那边。', like:'像地铁闸机：刷卡有效才开门，不管你说什么。',
  how:'选一个变量 → 选判断方式（包含、等于、为空、大于……）→ 填值。可以加多个 ELIF，从上往下判断，先满足哪个走哪个。',
- scenes:['报销超过 500 元，转领导审批', '用户没上传文件，就提示先上传', 'V3 里认暗号【笔记未覆盖】'],
+ scenes:['报销超过 500 元，转领导审批', '用户没上传文件，就提示先上传', '案例一里认暗号【笔记未覆盖】'],
  demo:{title:'报销审批', live:true,
   nodes:[
     {id:'s', type:'start', title:'用户输入', x:0, y:90, w:180, start:true, body:PL('{x} amount · 金额')},
@@ -1561,7 +2070,7 @@ const NDOCS = [
     return [fr(['s', 'i', id], `金额 ${n} 元 → 走 <b>${br}</b>：${lab}` + MU('按规则判断：不调模型、不花 token，同样的输入永远走同一条路。改改金额试试。'))];
   }}},
 
-{id:'iter', type:'iter', name:'迭代', group:'逻辑',
+{id:'iter', type:'iter', name:'迭代', group:'逻辑', uses:[{v:'scene', s:'c4_1', label:'案例二 · 4.1 逐张生图'}],
  one:'对列表里的每一项，做同样的事。', like:'像老师批一摞作业：每本都按同一个标准批。',
  how:'输入选一个列表 → 在框里放每一项要做的节点（用 <code>item</code> 取当前这一项）→ 输出是结果列表。可以开并行。',
  scenes:['批量拆解 5 条 JD', '长文按段落逐段翻译', '一批评论逐条打情绪标签'],
@@ -1649,7 +2158,7 @@ const NDOCS = [
 {id:'agg', type:'agg', name:'变量聚合器', group:'转换',
  one:'几条「只会走一条」的路，把结果收成一个。', like:'像机场：不管走哪个安检口，最后都到同一个登机口。',
  how:'把几条分支里同类型的输出都加进来 → 下游只引用它的 output 一个变量。只管「每次只走一条」的分支。',
- scenes:['V3 里笔记回答、联网回答，合成一个再统一排版', '会员 / 非会员两套话术，合成一个出口', '多个分类各自生成回复，最后统一加签名'],
+ scenes:['案例一里笔记回答、联网回答，合成一个再统一排版', '会员 / 非会员两套话术，合成一个出口', '多个分类各自生成回复，最后统一加签名'],
  demo:{title:'两套话术，一个出口', live:true,
   nodes:[
     {id:'s', type:'start', title:'用户输入', x:0, y:110, w:160, start:true, body:PL('{x} is_vip')},
@@ -1744,7 +2253,7 @@ const NDOCS = [
   }}},
 
 /* ---------- 工具 ---------- */
-{id:'tool', type:'tool', name:'工具', group:'工具', used:{v:'v3', s:'s3_3', label:'V3 · 3.3 博查搜索'},
+{id:'tool', type:'tool', name:'工具', group:'工具', uses:[{v:'v3', s:'s3_3', label:'案例一 · 3.3 博查搜索'}, {v:'scene', s:'c4_2', label:'案例二 · 4.2 编辑图像'}],
  one:'调一个现成的插件：上网、查数据、画图。', like:'像手机上装好的 App，点开就能用。',
  how:'插件市场装好 → 授权（填 Key）→ 在工具节点里填参数 → 输出 text / json / files。',
  scenes:['博查搜索：联网查资料', '文生图：给文章配图', '飞书 / 钉钉：发消息、写表格'],
@@ -1912,11 +2421,11 @@ document.getElementById('dfit').onclick = dFit;
 
 /* ---------- 列表 / 说明 ---------- */
 function nRenderList(){
-  let h = '<div class="nlegend"><i></i>今天带做里用过</div>';
+  let h = '<div class="nlegend"><i></i>两个案例里用过</div>';
   for (const g of NGROUPS) {
-    h += `<div class="round">${g}</div>`;
+    h += `<div class="mg">${g}</div>`;
     for (const d of NDOCS.filter(z => z.group === g))
-      h += `<button class="nli${d.id === NSTATE.cur ? ' on' : ''}" data-n="${d.id}"><span class="nicon" style="background:${COLOR[d.type]}">${ICON[d.type]}</span>${d.name}${d.used ? '<span class="dot"></span>' : ''}</button>`;
+      h += `<button class="nli${d.id === NSTATE.cur ? ' on' : ''}" data-n="${d.id}"><span class="nicon" style="background:${COLOR[d.type]}">${ICON[d.type]}</span>${d.name}${d.uses ? '<span class="dot"></span>' : ''}</button>`;
   }
   const nl = document.getElementById('nlist');
   nl.innerHTML = h;
@@ -1927,14 +2436,13 @@ function nRenderInfo(){
   const d = NDOCS_BY[NSTATE.cur];
   const el = document.getElementById('ninfo');
   el.innerHTML = `<div class="nh"><span class="nicon" style="background:${COLOR[d.type]}">${ICON[d.type]}</span><h2>${d.name}</h2></div>
-    <div class="badges"><span class="bd">${d.group}</span>${d.badge ? `<span class="bd ${d.bcls}">${d.badge}</span>` : ''}${d.used ? '<span class="bd used">今天用过</span>' : ''}</div>
+    <div class="badges"><span class="tg">${d.group}</span>${d.badge ? `<span class="tg ${d.bcls === 'wf' ? 'blue' : 'magenta'}">${d.badge}</span>` : ''}${d.uses ? '<span class="tg green">案例里用过</span>' : ''}</div>
     <div class="one">${d.one}</div><div class="like">💡 ${d.like}</div>
     <div class="sec">怎么用</div><div class="how">${d.how}</div>
     <div class="sec">用在哪</div><ul class="scn">${d.scenes.map(s => `<li>${s}</li>`).join('')}</ul>
-    ${d.used ? `<button class="jump" data-v="${d.used.v}" data-s="${d.used.s}">今天用在：${d.used.label} →</button>` : ''}`;
+    ${d.uses ? `<div class="sec">案例里用在</div><div class="jumps">${d.uses.map(u => `<button class="jump" data-v="${u.v}" data-s="${u.s}">${u.label} →</button>`).join('')}</div>` : ''}`;
   el.scrollTop = 0;
-  const j = el.querySelector('.jump');
-  if (j) j.onclick = () => { showFlows(); setVersion(j.dataset.v, j.dataset.s); };
+  el.querySelectorAll('.jump').forEach(j => j.onclick = () => { showFlows(); setVersion(j.dataset.v, j.dataset.s); });
 }
 function nInitDemo(){
   const d = NDOCS_BY[NSTATE.cur].demo;
@@ -1947,15 +2455,14 @@ function nInitDemo(){
   requestAnimationFrame(() => { dFit(); dRender(frames[frames.length - 1]); });
 }
 function nTopbar(){
-  document.getElementById('apptitle').textContent = 'Dify 节点初识 · 每个节点是干嘛的';
   const i = NORDER.indexOf(NSTATE.cur);
-  document.getElementById('prog').textContent = `节点 ${i + 1} / ${NORDER.length}`;
+  setProg(`节点 ${i + 1} / ${NORDER.length}`, i + 1, NORDER.length);
   document.getElementById('prev').disabled = i === 0;
   document.getElementById('next').disabled = i === NORDER.length - 1;
 }
 function nSelect(id){
   NSTATE.cur = id;
-  nRenderList(); nRenderInfo(); nInitDemo(); nTopbar(); markSeg(); save();
+  nRenderList(); nRenderInfo(); nInitDemo(); nTopbar(); markNav(); save(); syncURL();
 }
 function nodeStep(k){
   const i = NORDER.indexOf(NSTATE.cur), j = Math.max(0, Math.min(NORDER.length - 1, i + k));
@@ -1981,7 +2488,9 @@ try {
   if (o) { if (VERSIONS[o.v]) { sv = o.v; ss = o.s; } sm = o.m || 'flow'; if (o.n && NDOCS_BY[o.n]) sn = o.n; }
 } catch (e) {}
 const qp = new URLSearchParams(location.search);
+const CASEQ = {notes:'v3', 'notes-adv':'v4', scene:'scene'};
 if (VERSIONS[qp.get('v')]) { sv = qp.get('v'); ss = null; sm = 'flow'; }
+if (CASEQ[qp.get('case')]) { sv = CASEQ[qp.get('case')]; ss = null; sm = 'flow'; }
 if (qp.get('step')) { ss = qp.get('step'); sm = 'flow'; }
 if (qp.get('tab') === 'nodes') sm = 'nodes';
 if (qp.get('node') && NDOCS_BY[qp.get('node')]) { sn = qp.get('node'); sm = 'nodes'; }
