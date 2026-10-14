@@ -726,10 +726,14 @@ const SC_SCHEMA = `{
     "prompts": {
       "type": "array",
       "description": "每张图一条英文生图提示词，顺序与设计方案一致",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     }
   },
-  "required": ["prompts"]
+  "required": [
+    "prompts"
+  ]
 }`;
 const T_SC_BAD = `这张图里没有明确的商品主体。商品场景图生成器只能根据商品图生成场景图，请换一张包含明确商品的图片再试。`;
 const T_SC_NONE = `这次一张图都没有生成出来，可能是生图模型繁忙，或者提示词被安全规则拦截了。请点「重新生成」再试一次；如果还是不行，打开右上角的运行日志，看「逐张生图」里的报错。`;
@@ -1182,7 +1186,8 @@ const SCENE = {
     `顶部 ${ui('插件')} → ${ui('探索 Marketplace')} → 搜 <code>AIHubMix</code>，装这两个（作者都是 langgenius），已经装过的跳过：<b>AIHubMix 图片生成</b>（工具，用来出图）、<b>Aihubmix</b>（模型供应商，看图、写方案的 LLM 也走它）`,
     `准备 API Key：打开 <code>console.aihubmix.com/token</code>，用已有的 Key，或者新建一个`,
     `顶部 ${ui('工具')} → ${ui('AIHubMix 图片生成')} → ${ui('去授权')}：${ui('API 密钥')} 填 Key，${ui('API 接口地址')} 保持默认`,
-    `右上头像 → ${ui('设置')} → ${ui('模型供应商')} → ${ui('Aihubmix')} → 填同一个 Key`],
+    `右上头像 → ${ui('设置')} → ${ui('模型供应商')} → ${ui('Aihubmix')} → 填同一个 Key`,
+    `打开 <code>console.aihubmix.com/async-tasks</code>，开启 ${ui('异步任务')}（按账户开一次就行）。不开的话，出图时会报错 <code>async_not_enabled</code>`],
    tip:'一个 Key 管两件事：LLM 节点用的对话模型，和生图工具用的图像模型，都走 AIHubMix，只配一次。',
    warn:'出图按张计费：gemini-2.5-flash-image 每张约 0.04 美元，8 张约 0.3 美元。调试时数量先填 2，最后再完整跑一次 8 张。'},
 
@@ -1237,8 +1242,10 @@ const SCENE = {
    a:[
     `「出设计方案」和「出图」之间的连线 → ${ui('+')} → ${ui('LLM')}，改名「写生图提示词」`,
     `SYSTEM 粘贴提示词；USER 粘贴那几行，用 <kbd>/</kbd> 换掉 3 处黄字`,
-    `面板下方 ${ui('输出变量')} 旁打开 ${ui('结构化输出')} → 点开编辑 → ${ui('从 JSON 导入')} → 粘贴 Schema（右侧面板有复制）`,
-    `保存后，输出变量里会多出 ${v('写生图提示词', 'structured_output')} 下面的 <code>prompts</code>（Array[String]）`],
+    `面板下方 ${ui('输出变量')} 右边打开 ${ui('结构化输出')} 开关 → 点 structured_output 那一行的 ${ui('✎ 配置')}`,
+    `弹窗里切到 ${ui('JSON Schema')} 标签 → <b>全选里面原有的内容，全部删掉</b> → 粘贴右侧面板里的 Schema → ${ui('保存')}`,
+    `保存后，输出变量里多出 ${v('写生图提示词', 'structured_output')}（object），下面一个字段 <code>prompts</code>（array[string]，必填）`],
+   warn:'别用弹窗右上角的「从 JSON 导入」，直接在「JSON Schema」标签里全选删除、再粘贴。',
    tip:'为什么要结构化输出：下一步要「一条提示词出一张图」，迭代节点只认列表。普通输出是一大段文字；结构化输出直接给一个列表，有几条就跑几遍。'},
 
   {id:'c3_3', r:'第 3 轮 · 出方案、写提示词', no:'3.3', t:'测：方案和提示词的条数对不对', focus:[], fitIds:['sc_ifp', 'sc_plan', 'sc_prompt', 'sc_out'],
@@ -1289,6 +1296,7 @@ const SCENE = {
       <tr><td>3</td><td>大件（空调、冰箱、汽车）</td><td>16:9</td><td>人机交互场景</td><td>4</td><td>4 张横图，手碰的是产品本身</td></tr>
       <tr><td>4</td><td>任意商品</td><td>1:1</td><td>两种都要</td><td>8</td><td>8 张都出来；运行过程里看迭代花了多久</td></tr></table>`,
     `每张图过 4 个问题：产品占画面 1/3 以上吗？产品被换成别的东西了吗？画面里有第二件同类产品吗？四边有白边吗？`],
+   warn:'出图报错、提示要开启异步任务（报错里有 <code>async_not_enabled</code>）：到 <code>console.aihubmix.com/async-tasks</code> 开启，再回来点 ↻ 重跑。',
    check:'比例对、张数对、产品没走样 = 案例二完成。哪一项不对，就回到对应的提示词里加一条规则——生图产品平时就是这么迭代的。'},
 
   {id:'c5_1', r:'收尾', no:'5.1', t:'回头看：哪些交给模型，哪些写死', focus:[], fit:'all',
@@ -1608,8 +1616,10 @@ function panelFor(n, eff){
     else if (n.mem) b += F('USER', box(Q) + `<div class="note">打开记忆后若已自动带上本轮问题，就不要再手动加。</div>`, '待实测');
     else b += F('USER', box(Q) + `<div class="note">点「添加消息」新增一条 USER，按 <kbd>/</kbd> 选择。</div>`);
     b += F('记忆', `<div>${sw(!!n.mem)}${n.mem ? '<b>打开</b>，窗口保持默认' : '关'}</div>`);
-    if (n.so) b += F('结构化输出', `<div>${sw(true)}<b>打开</b> → 点开编辑 → 从 JSON 导入</div>` + pe('Schema', SC_SCHEMA) + NOTE('导入后能看到一个字段 prompts，类型 array，里面是 string。'));
-    b += outs(n.so ? [['text', 'String', '模型的回答'], ['structured_output.prompts', 'Array[String]', '一张图一条提示词']] : [['text', 'String', '模型的回答']]);
+    if (n.so) b += F('结构化输出', `<div>${sw(true)}<b>打开</b> → 点「配置」→ 切到「JSON Schema」标签 → 全选删掉原内容 → 粘贴 → 保存</div>` + pe('JSON Schema', SC_SCHEMA) + NOTE('不要用右上角的「从 JSON 导入」。保存后切回 Visual Editor，能看到 structured_output 下面一个字段 prompts，array[string]，必填。'));
+    b += F('输出变量', [['text', 'string', '生成内容'], ['reasoning_content', 'string', '推理内容'], ['usage', 'object', '模型用量信息']].concat(n.so ? [['structured_output', 'object', '']] : [])
+      .map(([k, t, d]) => `<div class="outv"><b>${k}</b><span>${t}</span>${d ? `<span>· ${d}</span>` : ''}</div>`).join('') +
+      (n.so ? `<div class="outv" style="padding-left:16px"><b>prompts</b><span>array[string]</span><span class="tag">必填</span><span>· 一张图一条提示词</span></div>` : ''));
   }
   if (n.type === 'agent') {
     b += F('Agent 策略', box('Function Calling（函数调用）') + `<div class="note">列表是空的：${ui('插件')} → 市场搜「Agent 策略」，装 Dify 官方的那个。</div>`, '待实测');
@@ -1677,7 +1687,8 @@ function panelSpecial(kind){
     ${F('工具插件', `<div class="kbitem">🖼 <b>AIHubMix 图片生成</b><span class="muted">· langgenius · 生成图像、编辑图像两个工具</span></div>`)}
     ${F('模型供应商插件', `<div class="kbitem">✳️ <b>Aihubmix</b><span class="muted">· langgenius · 对话模型都走它</span></div>`)}
     ${F('API 密钥', box('console.aihubmix.com/token 里的 Key') + NOTE('工具授权和模型供应商填同一个 Key。'))}
-    ${F('API 接口地址', box('https://api.inferera.com <span class="muted">（默认，不用改）</span>'))}</div>`;
+    ${F('API 接口地址', box('https://api.inferera.com <span class="muted">（默认，不用改）</span>'))}
+    ${F('异步任务', box('console.aihubmix.com/async-tasks → 开启') + NOTE('出图要用到。不开会报 403 async_not_enabled。'))}</div>`;
   if (kind === 'publishTool') return `<div class="ph"><div class="phr"><span class="nicon" style="background:var(--c-tool)">${ICON.tool}</span><span class="pt">发布为工具</span></div><div class="pdesc">发布 → 发布为工具，弹窗里按这里填</div></div><div class="pb">
     ${F('名称', cb('查课程笔记'))}
     ${F('工具调用名称', cb('search_course_notes') + `<div class="note">给模型看的名字，只能英文、数字、下划线。两个 Agent 的指令里用的就是它。</div>`)}
